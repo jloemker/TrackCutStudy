@@ -21,8 +21,11 @@ canvas_list = {}
 
 #########################
 
-# Alice: add projections and comparison histograms as you have them now in c++
-# Johanna: add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
+# Alice: 
+#   - add projections and comparison histograms as you have them now in c++
+# Johanna: 
+#   - add multBinning for projections of ThNSparses uncertainty in ranges
+#   - add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
 
 #########################
 
@@ -97,13 +100,12 @@ def drawPlots(InputDir="", Save=True):
 
    
     Directories = [Kine, TrackPar, ITS, TPC, EventProp, Centrality, Mult, TrackEventPar]
-    test = [Mult, TrackEventPar]
     f = TFile.Open(InputDir+"AnalysisResults_FromFull.root", "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
     f.ls()
-    for dir in test:
+    for dir in Directories:
         dirName = " "
         for obj in dir:#case switch would be more elegant...
             if dir == Directories[0]:
@@ -187,8 +189,6 @@ def drawPlots(InputDir="", Save=True):
         else:
             input("Wait")
             clear_canvaslist()
-    
-
 
 
 def main():
@@ -199,8 +199,9 @@ def main():
                         default=False, help="If you set this flag, it will save the documents")
     args = parser.parse_args()
 
-    #get_plots(args.Input, args.Merged, args.Save)
-    drawPlots(args.Input, args.Save)
+    drawPlots(args.Input, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
+    #compareCuts()
+    #compareDataSet()
 
 main()
     
