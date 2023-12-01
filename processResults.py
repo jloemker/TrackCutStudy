@@ -16,6 +16,16 @@ import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 canvas_list = {}
+#histo_list = {}
+
+
+#########################
+
+# Alice: add projections and comparison histograms as you have them now in c++
+# Johanna: add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
+
+#########################
+
 
 def clear_canvaslist():
     global canvas_list
@@ -57,177 +67,21 @@ def canvas(n, x=800, y=800,
         canvas_list[n] = can
     return can
 
-def project(h):
-    h1 = h.Projection(1) # pT
-    h2 = h.Projection(2) # sigma
-    h3 = h.Projection(0) # multiplicity measures
-    h1.SetStats(0)
-    h2.SetStats(0)
-    h3.SetStats(0)
-    h1.SetTitle("")
-    h2.SetTitle("")
-    h3.SetTitle("")
-    h1.GetYaxis().SetTitle("Number of entries")
-    h2.GetYaxis().SetTitle("Number of entries")
-    h3.GetYaxis().SetTitle("Number of entries")
-    h1.GetXaxis().SetTitle("#it{p}_{T} [GeV/#it{c}]")
-    h2.GetXaxis().SetTitle("#sigma(1/#it{p}_{T})")
-    if "Track" in h.GetTitle():
-        h3.GetXaxis().SetTitle("Number of tracks PV")
-    elif "mult" in h.GetTitle():
-        h3.GetXaxis().SetTitle("Multiplicity FT0M")
-    return h1,h2,h3
-
-def project2D(h):
-    h12 = h.Projection(1,2)#PtVsSigmaPtViaTracks
-    h13 = h.Projection(2,0)#SigmaVsTracksPV
-    h10 = h.Projection(1,0)#PtVsTrackPV
-    h12.SetStats(0)
-    h13.SetStats(0)
-    h10.SetStats(0)
-    h12.SetTitle("")
-    h13.SetTitle("")
-    h10.SetTitle("")
-    h12.GetXaxis().SetTitle("#sigma(1/#it{p}_{T})")
-    h12.GetYaxis().SetTitle("#it{p}_{T} [GeV/#it{c}]")
-    h13.GetYaxis().SetTitle("#sigma(1/#it{p}_{T})")
-    h10.GetYaxis().SetTitle("#it{p}_{T}")
-    if "Track" in h.GetTitle():
-        h13.GetXaxis().SetTitle("Number of tracks PV")
-        h10.GetXaxis().SetTitle("Number of tracks PV")
-    elif "mult" in h.GetTitle():
-        h13.GetXaxis().SetTitle("Multiplicity FT0M")
-        h10.GetXaxis().SetTitle("Multiplicity FT0M")
-    return h12, h13, h10
-
-def product(pt, sigmapT):#pT / sigmaPt
-    result = sigmapT.Clone("sigmapT")
-    result.Reset()
-    for i in range(0,sigmapT.GetNbinsX()):
-        if sigmapT.GetBinContent(i) > 0:
-            result.SetBinContent(i, pt.GetBinContent(i)/sigmapT.GetBinContent(i))
-            err = pow(pow(pt.GetBinError(i)/sigmapT.GetBinContent(i), 2) + pow(sigmapT.GetBinContent(i)*pt.GetBinError(i)/(sigmapT.GetBinContent(i)*sigmapT.GetBinContent(i)),2), 1/2)
-            result.SetBinError(i, err )
-        else:
-            result.SetBinError(i, 0 )
-    result.GetYaxis().SetTitle("#it{p}_{T}/#sigma(1/#it{p}_{T})")
-    return result
-
-
-def get_plots(InputDir="", Merged=True, Save=""):# old stuff.. 
-    histoList = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV"}
-    if Merged:
-        f = TFile.Open(InputDir+"AnalysisResults.root", "READ")
-        if not f or not f.IsOpen():
-            print("Did not get", f)
-            return
-        f.ls()
-        FT0M = f.Get("track-jet-qa/TrackEventPar/Sigma1PtFT0Mmult")
-        Tracks = f.Get("track-jet-qa/TrackEventPar/Sigma1PtNTracksPV")
-        #correlation(FT0M, Tracks)
-        input("Wait")
-        clear_canvaslist()
-        for obj in histoList:
-            h = f.Get("track-jet-qa/TrackEventPar/"+obj)
-            if "THnSparse" in h.ClassName():
-                print("Handling a THnSparse")
-                sigma_axis = None
-                cent_axis = None
-                pt_axis = None
-                mult_axis = None
-                track_axis = None
-                if "multiplicity" in h.GetTitle():
-                    print("multiplicity")
-                    #inclusive
-                    h1, h2, h3 = project(h)
-                    h12, h13, h10 = project2D(h)
-                    hsigma = product(h1, h2)
-                    #in ranges
-                    cMult= canvas("Mult")
-                    h3.Draw("E")
-                    cPt = canvas("InclusivePtViaMult")
-                    cPt.SetLogy()
-                    h1.Draw("E")
-                    cSigma = canvas("InlcusiveSigmaViaMult")
-                    cSigma.SetLogy()
-                    h2.Draw("E")
-                    corrSigma = canvas("CorrectedSigmaPtViaMult")
-                    corrSigma.SetLogy()
-                    hsigma.Draw("E")
-                    cSigmaPt = canvas("PtVsSigmaPtViaMult")
-                    cSigmaPt.SetLogz()
-                    h12.Draw("COLZ")
-                    cSigmaTrack = canvas("SigmaVsMult")
-                    cSigmaTrack.SetLogz()
-                    h13.Draw("COLZ")
-                    cSigmaPt = canvas("PtVsMult")
-                    cSigmaPt.SetLogz()
-                    h10.Draw("COLZ")
-                    if Save=="False":
-                        input("Wait")
- 
-                if "NTracksPV" in h.GetTitle(): #THnSparse::GetAxis(12)->SetRange(from_bin, to_bin);
-                    #projectionInRange(h,10)
-                    #clear_canvaslist()
-                    print("NTracksPV")
-                    #inclusive
-                    h1, h2, h3 = project(h)
-                    h12, h13, h10 = project2D(h)
-                    #hsigma = product(h1, h2)
-                    #make array of histos for projections in NTracks ranges
-                    hT={}
-                    #in ranges
-                    cTrack = canvas("NTrackPV")
-                    h3.Draw("E")
-                    #cPt = canvas("InclusivePtViaTracks")
-                    #cPt.SetLogy()
-                    #h1.Draw("E")
-                    #cSigma = canvas("InlcusiveSigmaViaTracks")
-                    #cSigma.SetLogy()
-                    #h2.Draw("E")
-                    #corrSigma = canvas("CorrectedSigmaPtViaTracks")
-                    #corrSigma.SetLogy()
-                    #hsigma.Draw("E")
-                    cSigmaPt = canvas("PtVsSigmaPtViaTracks")
-                    cSigmaPt.SetLogz()
-                    h12.Draw("COLZ")
-                    cSigmaTrack = canvas("SigmaVsTracksPV")
-                    cSigmaTrack.SetLogz()
-                    h13.Draw("COLZ")
-                    cSigmaPt = canvas("PtVsTrackPV")
-                    cSigmaPt.SetLogz()
-                    h10.Draw("COLZ")
-                    if Save=="False":
-                        input("Wait")
-                if "centrality" in h.GetTitle(): #Not Yet Calibrated
-                    print("centrality")
-
-                if Save=="True":
-                    n = 0
-                    for i in canvas_list:
-                        dataSet = InputDir.strip("Results/")
-                        print(dataSet)
-                        save_name = f"Save/{dataSet}.pdf"
-                        save2 = f"Save/{dataSet}/"
-                        os.makedirs(os.path.dirname(save2), exist_ok=True)
-                        if n == 0:
-                            canvas_list[i].SaveAs(f"{save_name}[")
-                        #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
-                        canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
-                        n += 1
-                        if n == len(canvas_list):
-                            canvas_list[i].SaveAs(f"{save_name}]")
-
-
-
-#########################
-
-# ALICE FUnctions for projetions
-
-#########################
-
+def ProjectThN(histo, NumberOfAxis, dirName):
+    title = histo.GetTitle()
+    #histo.SetTitle(dirName+" "+title)
+    for axis in range(0,NumberOfAxis):
+        for next_axis in range(0,NumberOfAxis):
+            h = histo.Projection(axis,next_axis)
+            #print(h.GetTitle())
+            h.SetStats(0)
+            can = canvas(dirName+" "+h.GetXaxis().GetTitle()+" vs "+h.GetYaxis().GetTitle())
+            can.SetLogz()
+            h.SetTitle(" ")
+            h.Draw("COLZ")
 
 def drawPlots(InputDir="", Save=True):
+    #all available histos
     Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
     TrackPar = {"x", "y", "z", "alpha", "signed1Pt", "snp", "tgl", "flags", "dcaXY", "dcaZ", "length", 
                 "Sigma1Pt", "Sigma1Pt_Layer1", "Sigma1Pt_Layer2", "Sigma1Pt_Layers12", "Sigma1Pt_Layer4",
@@ -236,23 +90,20 @@ def drawPlots(InputDir="", Save=True):
     TPC = {"tpcNClsFindable", "tpcNClsFound", "tpcNClsShared", "tpcNClsCrossedRows", "tpcFractionSharedCls", "tpcCrossedRowsOverFindableCls", "tpcChi2NCl"}
     EventProp = {"collisionVtxZ", "collisionVtxZnoSel", "collisionVtxZSel8"}
     Centrality = {"FT0M", "FT0A", "FT0C"}
-    Mult = {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
-    TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
+    #Mult = {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
+    Mult = {"FT0M", "MultCorrelations"}#only these are filled
+    #TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
+    TrackEventPar = {"Sigma1PtFT0Mcent", "MultCorrelations"}#only these are filled
 
-    #histos.add("Mult/MultCorrelations", "MultCorrelations", HistType::kTHnSparseD, {axisPercentileFT0A, axisPercentileFT0C, axisMultiplicityFT0A, axisMultiplicityFT0C, axisMultiplicityPV});
-
-    #histos.add("TrackEventPar/Sigma1PtFT0Mcent", "Sigma1Pt vs pT vs FT0M centrality", HistType::kTHnSparseD, {axisPercentileFT0M, axisPt, axisSigma1OverPt});
-    #histos.add("TrackEventPar/Sigma1PtFT0Mmult", "Sigma1Pt vs pT vs FT0A,C multiplicity", HistType::kTHnSparseD, {axisMultiplicityFT0M, axisPt, axisSigma1OverPt});
-    #histos.add("TrackEventPar/Sigma1PtNTracksPV", "Sigma1Pt vs pT vs NTracksPV", HistType::kTHnSparseD, {axisMultiplicityPV, axisPt, axisSigma1OverPt});
-    #histos.add("TrackEventPar/MultCorrelations", "Sigma1Pt vs pT vs MultCorrelations", HistType::kTHnSparseD, {axisSigma1OverPt, axisPt, axisPercentileFT0A, axisPercentileFT0C, axisMultiplicityFT0A, axisMultiplicityFT0C, axisMultiplicityPV});
-
+   
     Directories = [Kine, TrackPar, ITS, TPC, EventProp, Centrality, Mult, TrackEventPar]
-    f = TFile.Open(InputDir+"AnalysisResults.root", "READ")
+    test = [Mult, TrackEventPar]
+    f = TFile.Open(InputDir+"AnalysisResults_FromFull.root", "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
     f.ls()
-    for dir in Directories:
+    for dir in test:
         dirName = " "
         for obj in dir:#case switch would be more elegant...
             if dir == Directories[0]:
@@ -276,6 +127,7 @@ def drawPlots(InputDir="", Save=True):
                 can = canvas(o.GetTitle())
                 o.SetMarkerStyle(21)
                 o.SetMarkerColor(4)
+                o.GetYaxis().SetTitle("number of entries")
                 if "pt" in o.GetName():
                     can.SetLogy()
                 elif ("collisionVtxZ" in o.GetName()) or ("Mult"==dirName):
@@ -305,16 +157,16 @@ def drawPlots(InputDir="", Save=True):
                     h.Draw("COLZ")
                     histos.append(h)
                     o.GetXaxis().SetRange(0, N)
-            #input("Wait")
             if "THnSparse" in o.ClassName():
                 print("Handling a THnSparse")
-                sigma_axis = None
-                cent_axis = None
-                pt_axis = None
-                mult_axis = None
-                track_axis = None
-                if "multiplicity" in o.GetTitle():
-                    print("multiplicity")
+                #if dirName == "Mult":
+                #    ProjectThN(o,5, dirName)
+               # if dirName == "TrackEventPar":
+                ProjectThN(o,o.GetNdimensions(), dirName)
+                input("Wait2")
+            else:
+                print("we miss something..")
+
         n = 0
         if Save==True:
             for i in canvas_list:
@@ -332,10 +184,9 @@ def drawPlots(InputDir="", Save=True):
                     canvas_list[i].SaveAs(f"{save_name}]")
             input("wait")
             clear_canvaslist()
-
         else:
+            input("Wait")
             clear_canvaslist()
-    input("Wait")
     
 
 
