@@ -5,15 +5,18 @@
 #therefore we should keep track of the mother file (tree) in this directory
 # once the cutvars are done the ,other file should move to the same diectory!
 reset
-ResDir="LHC_Test" #one can make it a command line argument ..that would be nice... and that it creates the paths !! uff yeah !
+Results="$@" #directory to tress as command line argument
 CfgDir=$(dirname "$0")
 Cfg="-b"
-Cfg="--configuration json://configs/derived_multi.json -b --aod-file ../Results/LHC_Test/AnalysisResultsMother.root"
+
+mkdir -p "${Results}/CutVariations/" #creates subdirectory for CutVariation in Results section where you keep your data
+echo "${Results}AnalysisResults_trees.root" > list.txt # generates the list for the config file
+
+Cfg="--configuration json://configs/derived_multi.json -b"
 
 function runSpec {
-    #o2-analysis-lf-spectra-tof
     o2-analysis-je-track-jet-qa $Cfg --workflow-suffix $1
-    mv AnalysisResults.root AnalysisResults_$1.root
+    mv AnalysisResults.root ${Results}/CutVariations/AnalysisResults_$1.root
 }
 
 runSpec maxChi2PerClusterITS30
@@ -38,7 +41,4 @@ runSpec maxChi2PerClusterITS40
 #runspec globalTrackWoPtEta
 #runspec requireITSrefit
 #runspec requireTPCrefit
-
-#move the mother file to same directory as specified in the beginning
-#mv *.root ../Results/LHC_Test/CutVariations/*.root
 
