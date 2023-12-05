@@ -84,7 +84,6 @@ def ProjectThN(hist, NumberOfAxis, dirName):
             if hist.GetAxis(axis).GetTitle() == hist.GetAxis(next_axis).GetTitle():
                 continue
             h = hist.Projection(axis,next_axis)
-            #print(h.GetTitle())
             h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
             h.SetStats(0)
             can = canvas(dirName+" "+h.GetTitle())
@@ -111,14 +110,20 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
     ITS = {"itsNCls", "itsChi2NCl", "itsHits"}
     TPC = {"tpcNClsFindable", "tpcNClsFound", "tpcNClsShared", "tpcNClsCrossedRows", "tpcFractionSharedCls", "tpcCrossedRowsOverFindableCls", "tpcChi2NCl"}
     EventProp = {"collisionVtxZ", "collisionVtxZnoSel", "collisionVtxZSel8"}
+    Mult = {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
+    TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
+    Centrality = {"FT0M", "FT0A", "FT0C"}
+    
+    Directories = [Kine, TrackPar, ITS, TPC, EventProp, Mult, TrackEventPar, Centrality]
 
+    # Current modes to run the script
     if Mode=="Tree":
         Directories = [Kine, TrackPar, ITS, TPC, EventProp]#Event Prop has to be the last  as we swith to the results file from the produce table
         
     if Mode=="Full":
         Centrality = {"FT0M", "FT0A", "FT0C"}
         Mult = {"FT0M", "MultCorrelations"}#only these are filled -> {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
-        TrackEventPar = {"Sigma1PtFT0Mcent", "MultCorrelations"}#only these are filled ->  {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
+        TrackEventPar = {"MultCorrelations"}#only these are filled ->  {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
         Directories = [Kine, TrackPar, ITS, TPC, EventProp, Mult, TrackEventPar]
 
     if not f or not f.IsOpen():
@@ -127,27 +132,30 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
     f.ls()
     for dir in Directories:
         dirName = " "
+        if dir == Directories[0]:
+            dirName = "Kine"
+        elif dir == Directories[1]:
+            dirName = "TrackPar"
+        elif dir == Directories[2]:
+            dirName = "ITS"
+        elif dir == Directories[3]:
+            dirName = "TPC"
+        elif dir == Directories[4]:
+            dirName = "EventProp"
+            if Mode=="Tree":
+                f.Close()
+                f = TFile.Open(InputDir+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
+        elif dir == Directories[5]:
+            dirName = "Mult"
+        elif dir == Directories[6]:
+            dirName = "TrackEventPar"
+        elif dir == Directories[7]:
+            dirName = "Centrality"
+            return
         for obj in dir:#case switch would be more elegant...
-            if dir == Directories[0]:
-                dirName = "Kine"
-            elif dir == Directories[1]:
-                dirName = "TrackPar"
-            elif dir == Directories[2]:
-                dirName = "ITS"
-            elif dir == Directories[3]:
-                dirName = "TPC"
-            elif dir == Directories[4]:
-                dirName = "EventProp"
-                if Mode=="Tree":
-                    f.Close()
-                    f = TFile.Open(InputDir+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
-            elif dir == Directories[5]:
-                dirName = "Centrality"
-            elif dir == Directories[6]:
-                dirName = "Mult"
-            elif dir == Directories[7]:
-                dirName = "TrackEventPar"
             o = f.Get(f"track-jet-qa/"+dirName+"/"+obj)
+            if not o:
+                print("Did not get", o, " as object ", obj)
             if "TH1" in o.ClassName():
                 can = canvas(o.GetTitle())
                 o.SetMarkerStyle(21)
@@ -168,7 +176,7 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
                 o.Draw("COLZ")
                 profileTH2X(o, dirName)
             elif "TH3" in o.ClassName():
-                print(o.GetXaxis().GetTitle())
+                #print(o.GetXaxis().GetTitle())
                 histos = []
                 for i in range(1,5):
                     N = o.GetNbinsX()
@@ -184,7 +192,6 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
                     histos.append(h)
                     o.GetXaxis().SetRange(0, N)
             elif "THnSparse" in o.ClassName():
-                print("Handling a THnSparse")
                 ProjectThN(o,o.GetNdimensions(), dirName)
             else:
                 print("we miss something..")
@@ -205,10 +212,12 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
                 n += 1
                 if n == len(canvas_list):
                     canvas_list[i].SaveAs(f"{save_name}]")
-            input("Saving ", dirName)
+            input("Saving ")
+            input("dirName")
             clear_canvaslist()
         else:
-            input("Wait")
+            print("Wait, we are at ")
+            input(dirName)
             clear_canvaslist()
 
 
@@ -221,6 +230,7 @@ def main():
     parser.add_argument("--Save", "-s", type=bool,
                         default=False, help="If you set this flag, it will save the documents")
     args = parser.parse_args()
+
     if args.Mode=="Tree":
         file = TFile.Open(args.Input+"AnalysisResults_trees.root", "READ")
     if args.Mode=="Full":
