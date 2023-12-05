@@ -4,7 +4,8 @@
 Post processing script to handle the QA output from trackJetQa i.e. resolution at high pT.
 """
 
-from ROOT import TFile, TLegend, TCanvas, TString, gPad, TH1, TColor, TLatex, gROOT, TH1F, TF1, TArrow, TH2F
+import ROOT
+from ROOT import TFile, TLegend, TCanvas, TString, gPad, TH1, TColor, TLatex, gROOT, TH1F, TF1, TArrow, TH2F, TProfile, kAzure, kRainbow
 from os import path
 import os
 import configparser
@@ -13,6 +14,9 @@ import numpy
 import json
 import pandas
 import warnings
+
+ROOT.gStyle.SetPalette(kRainbow)
+
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 canvas_list = {}
@@ -83,6 +87,16 @@ def ProjectThN(histo, NumberOfAxis, dirName):
             h.SetTitle(" ")
             h.Draw("COLZ")
 
+# TH2 histograms X profile
+def profileTH2X(histo, dirName):
+    h_profileX = histo.ProfileX()
+    h_profileX.SetTitle(histo.GetTitle() + " X Profile")
+    h_profileX.GetYaxis().SetTitle("Mean value")
+    h_profileX.SetLineColor(kAzure+7)
+    h_profileX.SetLineWidth(3)
+    canX = canvas(dirName+" "+h_profileX.GetTitle())
+    h_profileX.Draw("E")
+
 def drawPlots(InputDir="", Save=True):
     #all available histos
     Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
@@ -98,9 +112,9 @@ def drawPlots(InputDir="", Save=True):
     #TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
     TrackEventPar = {"Sigma1PtFT0Mcent", "MultCorrelations"}#only these are filled
 
-   
+    #delete EventProp and Centrality if running the derived Analysis results
     Directories = [Kine, TrackPar, ITS, TPC, EventProp, Centrality, Mult, TrackEventPar]
-    f = TFile.Open(InputDir+"AnalysisResults_FromFull.root", "READ")
+    f = TFile.Open(InputDir+"AnalysisResults.root", "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
@@ -143,6 +157,7 @@ def drawPlots(InputDir="", Save=True):
                 can.SetLogz()
                 o.SetStats(0)
                 o.Draw("COLZ")
+                profileTH2X(o, dirName)
             if "TH3" in o.ClassName():
                 print(o.GetXaxis().GetTitle())
                 histos = []
