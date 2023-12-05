@@ -24,9 +24,6 @@ canvas_list = {}
 
 
 #########################
-
-# Alice: 
-#   - add projections and comparison histograms as you have them now in c++
 # Johanna: 
 #   - add multBinning for projections of ThNSparses uncertainty in ranges
 #   - add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
@@ -74,15 +71,23 @@ def canvas(n, x=800, y=800,
         canvas_list[n] = can
     return can
 
-def ProjectThN(histo, NumberOfAxis, dirName):
-    title = histo.GetTitle()
+def ProjectThN(hist, NumberOfAxis, dirName):
+    title = hist.GetTitle()
+    #hist=histo.Clone()
     #histo.SetTitle(dirName+" "+title)
     for axis in range(0,NumberOfAxis):
+        if "Centrality" in (hist.GetAxis(axis).GetTitle()):
+            continue
         for next_axis in range(0,NumberOfAxis):
-            h = histo.Projection(axis,next_axis)
+            if "Centrality" in (hist.GetAxis(next_axis).GetTitle()):
+                continue
+            if hist.GetAxis(axis).GetTitle() == hist.GetAxis(next_axis).GetTitle():
+                continue
+            h = hist.Projection(axis,next_axis)
             #print(h.GetTitle())
+            h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
             h.SetStats(0)
-            can = canvas(dirName+" "+h.GetXaxis().GetTitle()+" vs "+h.GetYaxis().GetTitle())
+            can = canvas(dirName+" "+h.GetTitle())
             can.SetLogz()
             h.SetTitle(" ")
             h.Draw("COLZ")
@@ -97,7 +102,7 @@ def profileTH2X(histo, dirName):
     canX = canvas(dirName+" "+h_profileX.GetTitle())
     h_profileX.Draw("E")
 
-def drawPlots(InputDir="", Save=True):
+def drawPlots(f, InputDir="", Mode="",Save=True):
     #all available histos
     Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
     TrackPar = {"x", "y", "z", "alpha", "signed1Pt", "snp", "tgl", "flags", "dcaXY", "dcaZ", "length", 
@@ -106,15 +111,16 @@ def drawPlots(InputDir="", Save=True):
     ITS = {"itsNCls", "itsChi2NCl", "itsHits"}
     TPC = {"tpcNClsFindable", "tpcNClsFound", "tpcNClsShared", "tpcNClsCrossedRows", "tpcFractionSharedCls", "tpcCrossedRowsOverFindableCls", "tpcChi2NCl"}
     EventProp = {"collisionVtxZ", "collisionVtxZnoSel", "collisionVtxZSel8"}
-    Centrality = {"FT0M", "FT0A", "FT0C"}
-    #Mult = {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
-    Mult = {"FT0M", "MultCorrelations"}#only these are filled
-    #TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
-    TrackEventPar = {"Sigma1PtFT0Mcent", "MultCorrelations"}#only these are filled
 
-    #delete EventProp and Centrality if running the derived Analysis results
-    Directories = [Kine, TrackPar, ITS, TPC, EventProp, Centrality, Mult, TrackEventPar]
-    f = TFile.Open(InputDir+"AnalysisResults.root", "READ")
+    if Mode=="Tree":
+        Directories = [Kine, TrackPar, ITS, TPC, EventProp]#Event Prop has to be the last  as we swith to the results file from the produce table
+        
+    if Mode=="Full":
+        Centrality = {"FT0M", "FT0A", "FT0C"}
+        Mult = {"FT0M", "MultCorrelations"}#only these are filled -> {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
+        TrackEventPar = {"Sigma1PtFT0Mcent", "MultCorrelations"}#only these are filled ->  {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
+        Directories = [Kine, TrackPar, ITS, TPC, EventProp, Mult, TrackEventPar]
+
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
@@ -132,6 +138,9 @@ def drawPlots(InputDir="", Save=True):
                 dirName = "TPC"
             elif dir == Directories[4]:
                 dirName = "EventProp"
+                if Mode=="Tree":
+                    f.Close()
+                    f = TFile.Open(InputDir+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
             elif dir == Directories[5]:
                 dirName = "Centrality"
             elif dir == Directories[6]:
@@ -152,13 +161,13 @@ def drawPlots(InputDir="", Save=True):
                     o.SetTitle("")
                     o.SetStats(0)
                 o.Draw("E")
-            if "TH2" in o.ClassName():
+            elif "TH2" in o.ClassName():
                 can = canvas(o.GetTitle())
                 can.SetLogz()
                 o.SetStats(0)
                 o.Draw("COLZ")
                 profileTH2X(o, dirName)
-            if "TH3" in o.ClassName():
+            elif "TH3" in o.ClassName():
                 print(o.GetXaxis().GetTitle())
                 histos = []
                 for i in range(1,5):
@@ -170,19 +179,16 @@ def drawPlots(InputDir="", Save=True):
                     h = o.Project3D("yz")
                     h.SetStats(0)
                     h.SetDirectory(0)
-                    h.SetTitle("Projection range #it{p}_{T}: "+str(i)+" - "+str(j)+" GeV/#it{c}")
+                    h.SetTitle("Projection range #it{p}_{T}: "+str(o.GetXaxis().GetBinCenter(i))+" - "+str(o.GetXaxis().GetBinCenter(j))+" GeV/#it{c}")
                     h.Draw("COLZ")
                     histos.append(h)
                     o.GetXaxis().SetRange(0, N)
-            if "THnSparse" in o.ClassName():
+            elif "THnSparse" in o.ClassName():
                 print("Handling a THnSparse")
-                #if dirName == "Mult":
-                #    ProjectThN(o,5, dirName)
-               # if dirName == "TrackEventPar":
                 ProjectThN(o,o.GetNdimensions(), dirName)
-                input("Wait2")
             else:
                 print("we miss something..")
+                print(o.ClassName())
 
         n = 0
         if Save==True:
@@ -199,7 +205,7 @@ def drawPlots(InputDir="", Save=True):
                 n += 1
                 if n == len(canvas_list):
                     canvas_list[i].SaveAs(f"{save_name}]")
-            input("wait")
+            input("Saving ", dirName)
             clear_canvaslist()
         else:
             input("Wait")
@@ -210,11 +216,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--Input", "-in", type=str,
                         default="Results/LHC22s_pass5/", help="Name of the directory where to find the AnalysisResults.root")
+    parser.add_argument("--Mode", "-m", type=str,
+                        default="Full", help="Specify if you want to run over the 'Full' or 'Tree' results")
     parser.add_argument("--Save", "-s", type=bool,
                         default=False, help="If you set this flag, it will save the documents")
     args = parser.parse_args()
-
-    drawPlots(args.Input, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
+    if args.Mode=="Tree":
+        file = TFile.Open(args.Input+"AnalysisResults_trees.root", "READ")
+    if args.Mode=="Full":
+        file = TFile.Open(args.Input+"AnalysisResults.root", "READ")
+    drawPlots(file, args.Input, args.Mode, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
     #compareCuts()
     #compareDataSet()
 
