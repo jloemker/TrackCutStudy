@@ -86,6 +86,9 @@ def ProjectThN(hist, NumberOfAxis, dirName):
             h = hist.Projection(axis,next_axis)
             h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
             h.SetStats(0)
+            if dirName+" "+h.GetYaxis().GetTitle()+"vs"+h.GetXaxis().GetTitle() in canvas_list:
+                print(canvas_list)
+                continue
             can = canvas(dirName+" "+h.GetTitle())
             can.SetLogz()
             h.SetTitle(" ")
@@ -231,6 +234,7 @@ def main():
                         default=False, help="If you set this flag, it will save the documents")
     args = parser.parse_args()
 
+    
     if args.Mode=="Tree":
         file = TFile.Open(args.Input+"AnalysisResults_trees.root", "READ")
     if args.Mode=="Full":
