@@ -100,9 +100,12 @@ def profileTH2X(histo, dirName):
     canX = canvas(dirName+" "+h_profileX.GetTitle())
     h_profileX.Draw("E")
 
-def drawPlots(f, InputDir="", Mode="", Save=""):
+def drawPlots(InputDir="", Mode="", Save=""):
     #all available histos
+    f = TFile.Open(InputDir, "READ")
+
     Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
+    #print(str(Kine))# we should add a dictionary or smth. 
     TrackPar = {"x", "y", "z", "alpha", "signed1Pt", "snp", "tgl", "flags", "dcaXY", "dcaZ", "length", 
                 "Sigma1Pt", "Sigma1Pt_Layer1", "Sigma1Pt_Layer2", "Sigma1Pt_Layers12", "Sigma1Pt_Layer4",
                 "Sigma1Pt_Layer5", "Sigma1Pt_Layer6", "Sigma1Pt_Layers45", "Sigma1Pt_Layers56", "Sigma1Pt_Layers46", "Sigma1Pt_Layers456"}
@@ -141,9 +144,9 @@ def drawPlots(f, InputDir="", Mode="", Save=""):
             dirName = "TPC"
         elif dir == Directories[4]:
             dirName = "EventProp"
-            if Mode=="Tree":
+            if Mode=="Tree": #we need some config dict. for this.. for now i leave it out
                 f.Close()
-                f = TFile.Open(InputDir+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
+                f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
         elif dir == Directories[5]:
             dirName = "Mult"
         elif dir == Directories[6]:
@@ -198,8 +201,10 @@ def drawPlots(f, InputDir="", Mode="", Save=""):
 
         if Save=="True":
             dataSet = InputDir.strip("Results/"+"/AnalysisResults.root"+"/AnalysisResults_trees.root")
-            print(dataSet)
-            save_name = f"Save/{dataSet}/{dirName}.pdf"
+            if Mode=="Tree":
+                save2 = f"Save_Tree/{dataSet}/"
+                os.makedirs(os.path.dirname(save2), exist_ok=True)
+                save_name = f"Save_Tree/{dataSet}/{dirName}.pdf"
             SaveCanvasList(canvas_list, dataSet, save_name)
             input("wait")
         else:
@@ -223,6 +228,14 @@ def SaveCanvasList(canvas_list, dataSet, save_name):
     clear_canvaslist()
 
 def compareDataSet(DataSets={}, Save=True):
+    files = []
+    #histos[DataSets] = []
+    for dataSet in DataSets:
+        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
+        files.append(f)
+        #histos.append(h)
+    print(files)
+    
     print("Compare full dataset results")
 
     
@@ -232,22 +245,16 @@ def main():
                         default="Full", help="Specify if you want to run over the 'Full' or 'Tree' results")
     parser.add_argument("--Input", "-in", type=str,
                         default="Results/LHC22s_pass5/", help="Name of the directory where to find the AnalysisResults.root")
-    parser.add_argument("--DataSets","-d", type=str,
-                        default=["LHC23zzh_cpass1, LHC23zzh_cpass1"], help="Specify the results from the periods you want to compare")
+    parser.add_argument("--DataSets","-d", type=str, nargs="+",
+                        default="LHC23zzh_cpass1 LHC23zzh_cpass1", help="Specify the results from the periods you want to compare (without comma)")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
     args = parser.parse_args()
 
-    
-    if args.Mode=="Tree":
-        file = TFile.Open(args.Input+"AnalysisResults_trees.root", "READ")
-        drawPlots(file, args.Input, args.Mode, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
+    if args.Mode=="Tree" or args.Mode=="Full":
+        drawPlots(args.Input, args.Mode, args.Save)
 
-    if args.Mode=="Full":
-        file = TFile.Open(args.Input, "READ")#+"AnalysisResults.root"
-        drawPlots(file, args.Input, args.Mode, args.Save)
-
-    if args.Mode=="ComparePeriod":
+    if args.Mode=="CompareDataSets":# to compare Full results
         compareDataSet(args.DataSets, args.Save)
 
 
