@@ -19,7 +19,9 @@ ROOT.gStyle.SetPalette(kRainbow)
 
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
+Directories = ['Kine', 'TrackPar', 'ITS', 'TPC', 'EventProp', 'Mult', 'TrackEventPar', 'Centrality'] 
 canvas_list = {}
+legends = []
 #histo_list = {}
 
 
@@ -71,7 +73,7 @@ def canvas(n, x=800, y=800,
         canvas_list[n] = can
     return can
 
-def ProjectThN(hist, NumberOfAxis, dirName):
+def ProjectTHnSparse(hist, NumberOfAxis, dirName):
     for axis in range(0,NumberOfAxis):
         if "Centrality" in (hist.GetAxis(axis).GetTitle()):
             continue
@@ -100,23 +102,55 @@ def profileTH2X(histo, dirName):
     canX = canvas(dirName+" "+h_profileX.GetTitle())
     h_profileX.Draw("E")
 
+
+def createLegend(x=[0.7, 0.92], y=[0.7, 0.92], title="",
+                     columns=1, objects=None, linecolor=0):
+    global legends
+    leg = TLegend(x[0], y[0], x[1], y[1], title)
+    leg.SetLineColor(linecolor)
+    leg.SetNColumns(columns)
+    if objects is not None:
+        if type(objects) is list:
+            for o in objects:
+                leg.AddEntry(o, f"{o.GetName()}", "lp")
+        elif type(objects) is dict:
+            for o in objects:
+                leg.AddEntry(objects[o], "", "lp")
+    legends.append(leg)
+    return leg
+
+
+def saveCanvasList(canvas_list, save_name, dataSet=None):
+    n = 0
+    for i in canvas_list:
+        if dataSet:
+            print(dataSet)
+            save2 = f"Save/{dataSet}/"
+            os.makedirs(os.path.dirname(save2), exist_ok=True)
+        if n == 0:
+            canvas_list[i].SaveAs(f"{save_name}[")
+            #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
+        canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
+        n += 1
+        if n == len(canvas_list):
+            canvas_list[i].SaveAs(f"{save_name}]")
+    clear_canvaslist()
+
 def drawPlots(InputDir="", Mode="", Save=""):
     f = TFile.Open(InputDir, "READ")
-    Directories = ['Kine', 'TrackPar', 'ITS', 'TPC', 'EventProp', 'Mult', 'TrackEventPar', 'Centrality']
-
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
-    f.ls()
     for dirName in  Directories:
-        if (Mode=="Tree") and (dirName=="EventProp"): #we need some config dict. for this.. for now i leave it out
+        if (Mode=="Tree") and (dirName=="EventProp"):
             f.Close()
-            f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
+            # the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
+            f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")
         elif dirName == "Centrality":#not calibrated
             return
-        d = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
-        for obj in d:
-            obj.GetName()
+        dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
+        for obj in dir:
+            #print(obj.GetName())
             o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
             if not o:
                 print("Did not get", o, " as object ", obj)
@@ -141,7 +175,6 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 o.Draw("COLZ")
                 profileTH2X(o, dirName)
             elif "TH3" in o.ClassName():
-                #print(o.GetXaxis().GetTitle())
                 histos = []
                 for i in range(1,5):
                     N = o.GetNbinsX()
@@ -157,7 +190,7 @@ def drawPlots(InputDir="", Mode="", Save=""):
                     histos.append(h)
                     o.GetXaxis().SetRange(0, N)
             elif "THnSparse" in o.ClassName():
-                ProjectThN(o,o.GetNdimensions(), dirName)
+                ProjectTHnSparse(o,o.GetNdimensions(), dirName)
             else:
                 print("we miss something..")
                 print(o.ClassName())
@@ -170,7 +203,7 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 save_name = f"Save_Tree/{dataSet}/{dirName}.pdf"
             if Mode=="Full":
                 save_name = f"Save/{dataSet}/{dirName}.pdf"
-            SaveCanvasList(canvas_list, dataSet, save_name)
+            saveCanvasList(canvas_list, save_name, dataSet)
             input("wait")
         else:
             print("Wait, we are at ")
@@ -178,39 +211,86 @@ def drawPlots(InputDir="", Mode="", Save=""):
             clear_canvaslist()
 
 
-def SaveCanvasList(canvas_list, dataSet, save_name):
-    n = 0
-    for i in canvas_list:
-        print(dataSet)
-        save2 = f"Save/{dataSet}/"
-        os.makedirs(os.path.dirname(save2), exist_ok=True)
-        if n == 0:
-            canvas_list[i].SaveAs(f"{save_name}[")
-            #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
-        canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
-        n += 1
-        if n == len(canvas_list):
-            canvas_list[i].SaveAs(f"{save_name}]")
-    clear_canvaslist()
+def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
+    files = {}
+    histos = []
+    for dataSet in DataSets:#make first one the base line for ratios and saving
+        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
+        if not f or not f.IsOpen():
+            print("Did not get", f)
+            return
+        files[dataSet] = f
+        for dirName in  Directories:
+            if dirName == "Centrality":#not calibrated
+                continue
+            dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
+            for obj in dir:
+                o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
+                if not o:
+                    print("Did not get", o, " as object ", obj)
+                    continue
+                if "TH1" in o.ClassName():
+                    #print(o.GetName())
+                    h = o.Clone()
+                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
+                    histos.append(h)
+                elif "TH2" in o.ClassName():
+                    #print(o.GetName())
+                    h = o.Clone()
+                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
+                    histos.append(h)
+                else:
+                    print("We miss some histotypes...")
 
-def compareDataSet(DataSets={}, Save=True):
-    files = []
-    #histos[DataSets] = []
-    for dataSet in DataSets:
-        files.append(TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ"))
-        
-        #histos.append(h)
-    print(files)
-    
+
+    for dirName in Directories:
+        for h in histos:
+            if not dirName in h.GetName():
+                continue
+            if (f"Compare_{h.GetTitle()}") in canvas_list:
+                continue
+            else:
+                can = canvas("Compare_"+h.GetTitle())
+                name = h.GetTitle()
+                histo = [h for h in histos if h.GetTitle() == name]
+                col = 0
+                for h in histo:
+                    col +=1
+                    nEntries = h.GetEntries()
+                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())
+                    h.SetName(newName)#+": "+f"{nEntries}")
+                    h.SetLineColor(col)
+                    h.SetMarkerColor(col)
+                    h.SetMarkerStyle(22+col)
+                    h.SetStats(0)
+                    h.Draw("ESAME")
+
+                legend = createLegend(objects=histo)
+                legend.Draw()
+                can.SetLogy()
+                input("wait..")
+
+
+    if Save=="True":
+        saveCanvasList(canvas_list, f"Save/Compare/{DataSets[0]}_to_{DataSets[1]}.pdf", f"Compare")
+        input("wait..")
+
+    else:
+        print("Wait, we are at ")
+        clear_canvaslist()
+
     print("Compare full dataset results")
+    input("Wait")
+
+
 
     
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--Mode", "-m", type=str,
-                        default="Full", help="Specify if you want to run over the 'Full' or 'Tree' results")
+                        default=["Full", "Tree", "CompareDataSets"], help="Activate 'CompareDataSets', or plots QA AnalysisResults from 'Full' , 'Tree'(derived) results")
     parser.add_argument("--Input", "-in", type=str,
-                        default="Results/LHC22s_pass5/", help="Name of the directory where to find the AnalysisResults.root")
+                        default="Results/LHC22s_pass5/AnalysisResults.root", help="Path and File input")
     parser.add_argument("--DataSets","-d", type=str, nargs="+",
                         default="LHC23zzh_cpass1 LHC23zzh_cpass1", help="Specify the results from the periods you want to compare (without comma)")
     parser.add_argument("--Save", "-s", type=str,
@@ -221,7 +301,7 @@ def main():
         drawPlots(args.Input, args.Mode, args.Save)
 
     if args.Mode=="CompareDataSets":# to compare Full results
-        compareDataSet(args.DataSets, args.Save)
+        compareDataSets(args.DataSets, args.Save)
 
 
     #compareCuts()
