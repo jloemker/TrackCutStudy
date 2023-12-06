@@ -21,6 +21,7 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 Directories = ['Kine', 'TrackPar', 'ITS', 'TPC', 'EventProp', 'Mult', 'TrackEventPar', 'Centrality'] 
 canvas_list = {}
+nice_frames = {}
 legends = []
 #histo_list = {}
 
@@ -29,8 +30,8 @@ legends = []
 # Johanna: 
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
 #   - add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
-
 #########################
+
 
 
 def clear_canvaslist():
@@ -69,28 +70,9 @@ def canvas(n, x=800, y=800,
             can.SetLeftMargin(marginx[0])
             can.SetRightMargin(marginx[1])
         can.SetBottomMargin(0.15)
-        can.SetTopMargin(0.1)
+        can.SetTopMargin(0.15)
         canvas_list[n] = can
     return can
-
-def ProjectTHnSparse(hist, NumberOfAxis, dirName):
-    for axis in range(0,NumberOfAxis):
-        if "Centrality" in (hist.GetAxis(axis).GetTitle()):
-            continue
-        for next_axis in range(0,NumberOfAxis):
-            if "Centrality" in (hist.GetAxis(next_axis).GetTitle()):
-                continue
-            if hist.GetAxis(axis).GetTitle() == hist.GetAxis(next_axis).GetTitle():
-                continue
-            h = hist.Projection(axis,next_axis)
-            h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
-            h.SetStats(0)
-            if dirName+" "+h.GetYaxis().GetTitle()+"vs"+h.GetXaxis().GetTitle() in canvas_list:
-                continue
-            can = canvas(dirName+" "+h.GetTitle())
-            can.SetLogz()
-            h.SetTitle(" ")
-            h.Draw("COLZ")
 
 # TH2 histograms X profile
 def profileTH2X(histo, dirName):
@@ -103,7 +85,7 @@ def profileTH2X(histo, dirName):
     h_profileX.Draw("E")
 
 
-def createLegend(x=[0.7, 0.92], y=[0.7, 0.92], title="",
+def createLegend(x=[0.7, 0.92], y=[0.8, 0.95], title="",
                      columns=1, objects=None, linecolor=0):
     global legends
     leg = TLegend(x[0], y[0], x[1], y[1], title)
@@ -136,6 +118,42 @@ def saveCanvasList(canvas_list, save_name, dataSet=None):
             canvas_list[i].SaveAs(f"{save_name}]")
     clear_canvaslist()
 
+def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
+    hlist = []
+    for axis in range(0,NumberOfAxis):
+        histo = hist.Projection(axis)
+        histo.SetTitle(hist.GetAxis(axis).GetTitle())
+        hlist.append(histo)
+        if "Centrality" in (hist.GetAxis(axis).GetTitle()):
+            continue
+        for next_axis in range(0,NumberOfAxis):
+            if "Centrality" in (hist.GetAxis(next_axis).GetTitle()):
+                continue
+            if hist.GetAxis(axis).GetTitle() == hist.GetAxis(next_axis).GetTitle():
+                continue
+            h = hist.Projection(axis,next_axis)
+            h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
+            h.SetStats(0)
+            if dirName:
+                if dirName+" "+h.GetYaxis().GetTitle()+"vs"+h.GetXaxis().GetTitle() in canvas_list:
+                    continue
+                can = canvas(dirName+" "+h.GetTitle())
+                can.SetLogz()
+                h.SetTitle(" ")
+                h.Draw("COLZ")
+            #profX = h.ProfileX()
+            #profX.SetTitle("Profile X "+h.GetXaxis().GetTitle()+" "+h.GetYaxis().GetTitle())
+            #profY = h.ProfileY()
+            #profY.SetTitle("Profile Y "+h.GetXaxis().GetTitle()+" "+h.GetYaxis().GetTitle())
+            #hlist.append(profX)
+            #hlist.append(profY)
+    if dirName==None:
+        #for h in hlist:
+        #    print(h.GetXaxis().GetTitle())
+        #    print(h.GetTitle())
+            #print(h.GetName())
+        return hlist
+    
 def drawPlots(InputDir="", Mode="", Save=""):
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
@@ -150,7 +168,6 @@ def drawPlots(InputDir="", Mode="", Save=""):
             return
         dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
         for obj in dir:
-            #print(obj.GetName())
             o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
             if not o:
                 print("Did not get", o, " as object ", obj)
@@ -210,7 +227,6 @@ def drawPlots(InputDir="", Mode="", Save=""):
             input(dirName)
             clear_canvaslist()
 
-
 def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
     files = {}
     histos = []
@@ -234,11 +250,24 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                     h = o.Clone()
                     h.SetName(dataSet+" "+dirName+" "+o.GetName())
                     histos.append(h)
-                elif "TH2" in o.ClassName():
-                    #print(o.GetName())
-                    h = o.Clone()
-                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
-                    histos.append(h)
+                elif "TH2" in o.ClassName():#to be done as well
+                    prof = o.ProfileX()
+                    prof.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Profile "+o.GetXaxis().GetTitle())
+                    prof.SetTitle(o.GetTitle()+" Profile "+o.GetXaxis().GetTitle())
+                    histos.append(prof)
+                    proj = o.ProjectionY()
+                    proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetYaxis().GetTitle())
+                    proj.SetTitle(o.GetTitle()+" Projection "+o.GetYaxis().GetTitle())
+                    histos.append(proj)
+                    if not "#it{p}_{T}" in o.GetXaxis().GetTitle():
+                        proj = o.ProjectionX()
+                        proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetXaxis().GetTitle())
+                        proj.SetTitle(o.GetTitle()+" Projection "+o.GetXaxis().GetTitle())
+                        histos.append(proj)
+                elif "TH3":
+                    continue
+                elif "THnSparse" in o.ClassName():
+                    continue
                 else:
                     print("We miss some histotypes...")
 
@@ -257,19 +286,17 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                 for h in histo:
                     col +=1
                     nEntries = h.GetEntries()
-                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())
+                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
                     h.SetLineColor(col)
                     h.SetMarkerColor(col)
                     h.SetMarkerStyle(22+col)
                     h.SetStats(0)
                     h.Draw("ESAME")
-
-                legend = createLegend(objects=histo)
+                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
                 legend.Draw()
                 can.SetLogy()
-                input("wait..")
-
+                #input("wait..")
 
     if Save=="True":
         saveCanvasList(canvas_list, f"Save/Compare/{DataSets[0]}_to_{DataSets[1]}.pdf", f"Compare")
