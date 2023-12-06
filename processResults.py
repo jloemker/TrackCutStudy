@@ -74,17 +74,6 @@ def canvas(n, x=800, y=800,
         canvas_list[n] = can
     return can
 
-# TH2 histograms X profile
-def profileTH2X(histo, dirName):
-    h_profileX = histo.ProfileX()
-    h_profileX.SetTitle(histo.GetTitle() + " X Profile")
-    h_profileX.GetYaxis().SetTitle("Mean value")
-    h_profileX.SetLineColor(kAzure+7)
-    h_profileX.SetLineWidth(3)
-    canX = canvas(dirName+" "+h_profileX.GetTitle())
-    h_profileX.Draw("E")
-
-
 def createLegend(x=[0.7, 0.92], y=[0.8, 0.95], title="",
                      columns=1, objects=None, linecolor=0):
     global legends
@@ -117,6 +106,16 @@ def saveCanvasList(canvas_list, save_name, dataSet=None):
         if n == len(canvas_list):
             canvas_list[i].SaveAs(f"{save_name}]")
     clear_canvaslist()
+
+# TH2 histograms X profile
+def profileTH2X(histo, dirName):
+    h_profileX = histo.ProfileX()
+    h_profileX.SetTitle(histo.GetTitle() + " X Profile")
+    h_profileX.GetYaxis().SetTitle("Mean value")
+    h_profileX.SetLineColor(kAzure+7)
+    h_profileX.SetLineWidth(3)
+    canX = canvas(dirName+" "+h_profileX.GetTitle())
+    h_profileX.Draw("E")
 
 def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
     hlist = []
@@ -270,8 +269,6 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                     continue
                 else:
                     print("We miss some histotypes...")
-
-
     for dirName in Directories:
         for h in histos:
             if not dirName in h.GetName():
@@ -280,9 +277,11 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                 continue
             else:
                 can = canvas("Compare_"+h.GetTitle())
+                canR = canvas("Ratio_"+h.GetTitle())
                 name = h.GetTitle()
                 histo = [h for h in histos if h.GetTitle() == name]
                 col = 0
+                can.cd()
                 for h in histo:
                     col +=1
                     nEntries = h.GetEntries()
@@ -296,11 +295,24 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                 legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
                 legend.Draw()
                 can.SetLogy()
+
+                canR.cd()#put this into a second pad 
+                for h in histo:
+                    if h == histo[0]:
+                        continue
+                    h.Sumw2()
+                    h.Divide(histo[0])#Replace contents of this histogram by the division of h1 by h2.)
+                    h.SetTitle(h.GetTitle())
+                    h.GetYaxis().SetTitle("(DataSet/"+histo[0].GetName()+")")
+                    h.Draw("ESAME")
+                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
+                legend.Draw()
+                canR.SetLogy()
+
                 #input("wait..")
 
     if Save=="True":
         saveCanvasList(canvas_list, f"Save/Compare/{DataSets[0]}_to_{DataSets[1]}.pdf", f"Compare")
-        input("wait..")
 
     else:
         print("Wait, we are at ")
