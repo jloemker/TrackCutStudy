@@ -101,63 +101,26 @@ def profileTH2X(histo, dirName):
     h_profileX.Draw("E")
 
 def drawPlots(InputDir="", Mode="", Save=""):
-    #all available histos
     f = TFile.Open(InputDir, "READ")
-
-    Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
-    #print(str(Kine))# we should add a dictionary or smth. 
-    TrackPar = {"x", "y", "z", "alpha", "signed1Pt", "snp", "tgl", "flags", "dcaXY", "dcaZ", "length", 
-                "Sigma1Pt", "Sigma1Pt_Layer1", "Sigma1Pt_Layer2", "Sigma1Pt_Layers12", "Sigma1Pt_Layer4",
-                "Sigma1Pt_Layer5", "Sigma1Pt_Layer6", "Sigma1Pt_Layers45", "Sigma1Pt_Layers56", "Sigma1Pt_Layers46", "Sigma1Pt_Layers456"}
-    ITS = {"itsNCls", "itsChi2NCl", "itsHits"}
-    TPC = {"tpcNClsFindable", "tpcNClsFound", "tpcNClsShared", "tpcNClsCrossedRows", "tpcFractionSharedCls", "tpcCrossedRowsOverFindableCls", "tpcChi2NCl"}
-    EventProp = {"collisionVtxZ", "collisionVtxZnoSel", "collisionVtxZSel8"}
-    Mult = {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
-    TrackEventPar = {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
-    Centrality = {"FT0M", "FT0A", "FT0C"}
-    
-    Directories = [Kine, TrackPar, ITS, TPC, EventProp, Mult, TrackEventPar, Centrality]
-
-    # Current modes to run the script
-    if Mode=="Tree":
-        Directories = [Kine, TrackPar, ITS, TPC, EventProp]#Event Prop has to be the last  as we swith to the results file from the produce table
-        
-    if Mode=="Full":
-        Centrality = {"FT0M", "FT0A", "FT0C"}
-        Mult = {"FT0M", "MultCorrelations"}#only these are filled -> {"NTracksPV", "FT0M", "FT0A", "FT0C", "MultCorrelations"}
-        TrackEventPar = {"MultCorrelations"}#only these are filled ->  {"Sigma1PtFT0Mcent", "Sigma1PtFT0Mmult", "Sigma1PtNTracksPV", "MultCorrelations"}
-        Directories = [Kine, TrackPar, ITS, TPC, EventProp, Mult, TrackEventPar]
+    Directories = ['Kine', 'TrackPar', 'ITS', 'TPC', 'EventProp', 'Mult', 'TrackEventPar', 'Centrality']
 
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
     f.ls()
-    for dir in Directories:
-        dirName = " "
-        if dir == Directories[0]:
-            dirName = "Kine"
-        elif dir == Directories[1]:
-            dirName = "TrackPar"
-        elif dir == Directories[2]:
-            dirName = "ITS"
-        elif dir == Directories[3]:
-            dirName = "TPC"
-        elif dir == Directories[4]:
-            dirName = "EventProp"
-            if Mode=="Tree": #we need some config dict. for this.. for now i leave it out
-                f.Close()
-                f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
-        elif dir == Directories[5]:
-            dirName = "Mult"
-        elif dir == Directories[6]:
-            dirName = "TrackEventPar"
-        elif dir == Directories[7]:
-            dirName = "Centrality"
+    for dirName in  Directories:
+        if (Mode=="Tree") and (dirName=="EventProp"): #we need some config dict. for this.. for now i leave it out
+            f.Close()
+            f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")# the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
+        elif dirName == "Centrality":#not calibrated
             return
-        for obj in dir:#case switch would be more elegant...
-            o = f.Get(f"track-jet-qa/"+dirName+"/"+obj)
+        d = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
+        for obj in d:
+            obj.GetName()
+            o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
             if not o:
                 print("Did not get", o, " as object ", obj)
+                continue
             if "TH1" in o.ClassName():
                 can = canvas(o.GetTitle())
                 o.SetMarkerStyle(21)
@@ -205,12 +168,15 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 save2 = f"Save_Tree/{dataSet}/"
                 os.makedirs(os.path.dirname(save2), exist_ok=True)
                 save_name = f"Save_Tree/{dataSet}/{dirName}.pdf"
+            if Mode=="Full":
+                save_name = f"Save/{dataSet}/{dirName}.pdf"
             SaveCanvasList(canvas_list, dataSet, save_name)
             input("wait")
         else:
             print("Wait, we are at ")
             input(dirName)
             clear_canvaslist()
+
 
 def SaveCanvasList(canvas_list, dataSet, save_name):
     n = 0
@@ -231,8 +197,8 @@ def compareDataSet(DataSets={}, Save=True):
     files = []
     #histos[DataSets] = []
     for dataSet in DataSets:
-        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
-        files.append(f)
+        files.append(TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ"))
+        
         #histos.append(h)
     print(files)
     
