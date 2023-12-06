@@ -25,7 +25,7 @@ canvas_list = {}
 
 #########################
 # Johanna: 
-#   - add multBinning for projections of ThNSparses uncertainty in ranges
+#   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
 #   - add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
 
 #########################
@@ -72,9 +72,6 @@ def canvas(n, x=800, y=800,
     return can
 
 def ProjectThN(hist, NumberOfAxis, dirName):
-    title = hist.GetTitle()
-    #hist=histo.Clone()
-    #histo.SetTitle(dirName+" "+title)
     for axis in range(0,NumberOfAxis):
         if "Centrality" in (hist.GetAxis(axis).GetTitle()):
             continue
@@ -87,7 +84,6 @@ def ProjectThN(hist, NumberOfAxis, dirName):
             h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
             h.SetStats(0)
             if dirName+" "+h.GetYaxis().GetTitle()+"vs"+h.GetXaxis().GetTitle() in canvas_list:
-                print(canvas_list)
                 continue
             can = canvas(dirName+" "+h.GetTitle())
             can.SetLogz()
@@ -104,7 +100,7 @@ def profileTH2X(histo, dirName):
     canX = canvas(dirName+" "+h_profileX.GetTitle())
     h_profileX.Draw("E")
 
-def drawPlots(f, InputDir="", Mode="",Save=True):
+def drawPlots(f, InputDir="", Mode="", Save=""):
     #all available histos
     Kine = {"pt", "pt_TRD", "eta", "phi", "etaVSphi", "EtaPhiPt"}
     TrackPar = {"x", "y", "z", "alpha", "signed1Pt", "snp", "tgl", "flags", "dcaXY", "dcaZ", "length", 
@@ -200,48 +196,62 @@ def drawPlots(f, InputDir="", Mode="",Save=True):
                 print("we miss something..")
                 print(o.ClassName())
 
-        n = 0
-        if Save==True:
-            for i in canvas_list:
-                dataSet = InputDir.strip("Results/")
-                print(dataSet)
-                save_name = f"Save/{dataSet}/{dirName}.pdf"
-                save2 = f"Save/{dataSet}/"
-                os.makedirs(os.path.dirname(save2), exist_ok=True)
-                if n == 0:
-                    canvas_list[i].SaveAs(f"{save_name}[")
-                    #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
-                canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
-                n += 1
-                if n == len(canvas_list):
-                    canvas_list[i].SaveAs(f"{save_name}]")
-            input("Saving ")
-            input("dirName")
-            clear_canvaslist()
+        if Save=="True":
+            dataSet = InputDir.strip("Results/"+"/AnalysisResults.root"+"/AnalysisResults_trees.root")
+            print(dataSet)
+            save_name = f"Save/{dataSet}/{dirName}.pdf"
+            SaveCanvasList(canvas_list, dataSet, save_name)
+            input("wait")
         else:
             print("Wait, we are at ")
             input(dirName)
             clear_canvaslist()
 
+def SaveCanvasList(canvas_list, dataSet, save_name):
+    n = 0
+    for i in canvas_list:
+        print(dataSet)
+        save2 = f"Save/{dataSet}/"
+        os.makedirs(os.path.dirname(save2), exist_ok=True)
+        if n == 0:
+            canvas_list[i].SaveAs(f"{save_name}[")
+            #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
+        canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
+        n += 1
+        if n == len(canvas_list):
+            canvas_list[i].SaveAs(f"{save_name}]")
+    clear_canvaslist()
 
+def compareDataSet(DataSets={}, Save=True):
+    print("Compare full dataset results")
+
+    
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--Input", "-in", type=str,
-                        default="Results/LHC22s_pass5/", help="Name of the directory where to find the AnalysisResults.root")
     parser.add_argument("--Mode", "-m", type=str,
                         default="Full", help="Specify if you want to run over the 'Full' or 'Tree' results")
-    parser.add_argument("--Save", "-s", type=bool,
-                        default=False, help="If you set this flag, it will save the documents")
+    parser.add_argument("--Input", "-in", type=str,
+                        default="Results/LHC22s_pass5/", help="Name of the directory where to find the AnalysisResults.root")
+    parser.add_argument("--DataSets","-d", type=str,
+                        default=["LHC23zzh_cpass1, LHC23zzh_cpass1"], help="Specify the results from the periods you want to compare")
+    parser.add_argument("--Save", "-s", type=str,
+                        default=["False", "True"], help="If you set this flag, it will save the documents")
     args = parser.parse_args()
 
     
     if args.Mode=="Tree":
         file = TFile.Open(args.Input+"AnalysisResults_trees.root", "READ")
+        drawPlots(file, args.Input, args.Mode, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
+
     if args.Mode=="Full":
-        file = TFile.Open(args.Input+"AnalysisResults.root", "READ")
-    drawPlots(file, args.Input, args.Mode, args.Save)#to be a bit more extended + multBinning for sigma and pT projections
+        file = TFile.Open(args.Input, "READ")#+"AnalysisResults.root"
+        drawPlots(file, args.Input, args.Mode, args.Save)
+
+    if args.Mode=="ComparePeriod":
+        compareDataSet(args.DataSets, args.Save)
+
+
     #compareCuts()
-    #compareDataSet()
 
 main()
     
