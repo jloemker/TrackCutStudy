@@ -28,11 +28,12 @@ legends = []
 
 #########################
 # Johanna: 
-#   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
-#   - add comparison step for different trackCuts + prepare standard legends and ratio plots based on what Alice did
 #   - add TRD comparison
-#   - improve general comparison script
 #   - add user specification
+#   - add comparison step for cutvariations
+#   - improve general comparison script - make axis pretty pipapo
+#   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
+#   
 #########################
 
 
@@ -252,9 +253,9 @@ def drawPlots(InputDir="", Mode="", Save=""):
             if Mode=="Full":
                 save_name = f"Save/{dataSet}/{dirName}.pdf"
             saveCanvasList(canvas_list, save_name, dataSet)
-            input("wait")
+            #input("wait")
         else:
-            print("Wait, we are at ")
+            print("we don't save this ...")
             #input(dirName)
             clear_canvaslist()
 
@@ -332,11 +333,10 @@ def compareDataSets(DataSets={}, Save=""):
                 legend.Draw("SAME")
                 can.SetLogy()
                 #input("wait..")
-
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/{dirName}.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
         else:
-            print("Wait, we are at ")
+            print("Wait, don't save this ... ")
             clear_canvaslist()
 
 
