@@ -29,7 +29,10 @@ legends = []
 #########################
 # Johanna: 
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
-#   - add comparison step for different trackCuts and different data set + prepare standard legends and ratio plots based on what Alice did
+#   - add comparison step for different trackCuts + prepare standard legends and ratio plots based on what Alice did
+#   - add TRD comparison
+#   - improve general comparison script
+#   - add user specification
 #########################
 
 
@@ -111,18 +114,38 @@ def saveCanvasList(canvas_list, save_name, dataSet=None):
 def profileTH2X(histo, dirName):
     h_profileX = histo.ProfileX()
     h_profileX.SetTitle(histo.GetTitle() + " X Profile")
-    h_profileX.GetYaxis().SetTitle("Mean value")
+    h_profileX.GetYaxis().SetTitle("mean value")
     h_profileX.SetLineColor(kAzure+7)
     h_profileX.SetLineWidth(3)
     canX = canvas(dirName+" "+h_profileX.GetTitle())
     h_profileX.Draw("E")
+
+def projectTH2(o, dirName):
+    hx = o.ProjectionX()
+    hx.SetLineColor(kAzure+7)
+    hx.SetLineWidth(3)
+    hx.SetStats(0)
+    hx.SetTitle("Eta vs Phi projection x")
+    canx = canvas(dirName+hx.GetTitle())
+    hx.GetYaxis().SetTitle("number of entires")
+    hx.Draw("E")
+    canx.SetLogx()
+    hy = o.ProjectionY()
+    hy.SetLineColor(kAzure+7)
+    hy.SetLineWidth(3)
+    hy.SetStats(0)
+    hy.SetTitle("Eta vs Phi projection y")
+    cany = canvas(dirName+hy.GetTitle())
+    hy.GetYaxis().SetTitle("number of entires")
+    hy.Draw("E")
+    cany.SetLogy()  
 
 def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
     hlist = []
     for axis in range(0,NumberOfAxis):
         histo = hist.Projection(axis)
         histo.SetTitle(hist.GetAxis(axis).GetTitle())
-        hlist.append(histo)
+        #hlist.append(histo)
         if "Centrality" in (hist.GetAxis(axis).GetTitle()):
             continue
         for next_axis in range(0,NumberOfAxis):
@@ -152,7 +175,8 @@ def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
         #    print(h.GetTitle())
             #print(h.GetName())
         return hlist
-    
+
+
 def drawPlots(InputDir="", Mode="", Save=""):
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
@@ -186,10 +210,19 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 o.Draw("E")
             elif "TH2" in o.ClassName():
                 can = canvas(o.GetTitle())
+                #sigma 1/pT labels are ugly.
+                #if "#it{sigma1}{p}_{T}" in o.GetXaxis().GetTitle():
+                #    o.GetXaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+                #    input("wait")
+                #if "p_{T} * sigma1{p}" == o.GetYaxis().GetTitle():
+                #    o.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+                #    input("wait")
                 can.SetLogz()
                 o.SetStats(0)
                 o.Draw("COLZ")
                 profileTH2X(o, dirName)
+                if "etaVSphi" == o.GetName():
+                    projectTH2(o, dirName)
             elif "TH3" in o.ClassName():
                 histos = []
                 for i in range(1,5):
@@ -210,7 +243,6 @@ def drawPlots(InputDir="", Mode="", Save=""):
             else:
                 print("we miss something..")
                 print(o.ClassName())
-
         if Save=="True":
             dataSet = InputDir.strip("Results/"+"/AnalysisResults.root"+"/AnalysisResults_trees.root")
             if Mode=="Tree":
@@ -223,10 +255,10 @@ def drawPlots(InputDir="", Mode="", Save=""):
             input("wait")
         else:
             print("Wait, we are at ")
-            input(dirName)
+            #input(dirName)
             clear_canvaslist()
 
-def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
+def compareDataSets(DataSets={}, Save=""):
     files = {}
     histos = []
     for dataSet in DataSets:#make first one the base line for ratios and saving
@@ -277,7 +309,6 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                 continue
             else:
                 can = canvas("Compare_"+h.GetTitle())
-                canR = canvas("Ratio_"+h.GetTitle())
                 name = h.GetTitle()
                 histo = [h for h in histos if h.GetTitle() == name]
                 col = 0
@@ -291,37 +322,131 @@ def compareDataSets(DataSets={}, Save=""):#Legend + other histo types !
                     h.SetMarkerColor(col)
                     h.SetMarkerStyle(22+col)
                     h.SetStats(0)
-                    h.Draw("ESAME")
+                    h.SetDirectory(0)
+                    if col == 1:
+                        h.Draw("E")
+                    else:
+                        h.Draw("SAME")
+                    #input("Wait")
                 legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
-                legend.Draw()
+                legend.Draw("SAME")
                 can.SetLogy()
-
-                canR.cd()#put this into a second pad 
-                for h in histo:
-                    if h == histo[0]:
-                        continue
-                    h.Sumw2()
-                    h.Divide(histo[0])#Replace contents of this histogram by the division of h1 by h2.)
-                    h.SetTitle(h.GetTitle())
-                    h.GetYaxis().SetTitle("(DataSet/"+histo[0].GetName()+")")
-                    h.Draw("ESAME")
-                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
-                legend.Draw()
-                canR.SetLogy()
-
                 #input("wait..")
 
-    if Save=="True":
-        saveCanvasList(canvas_list, f"Save/Compare/{DataSets[0]}_to_{DataSets[1]}.pdf", f"Compare")
+        if Save=="True":
+            saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/{dirName}.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
+        else:
+            print("Wait, we are at ")
+            clear_canvaslist()
 
+
+def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
+    files = {}
+    histos = []
+    for dataSet in DataSets:#make first one the base line for ratios and saving
+        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
+        if not f or not f.IsOpen():
+            print("Did not get", f)
+            return
+        files[dataSet] = f
+        for dirName in  Directories:
+            if dirName == "Centrality":#not calibrated
+                continue
+            dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
+            for obj in dir:
+                o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
+                if not o:
+                    print("Did not get", o, " as object ", obj)
+                    continue
+                if "TH1" in o.ClassName():
+                    #print(o.GetName())
+                    h = o.Clone()
+                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
+                    histos.append(h)
+                elif "TH2" in o.ClassName():#to be done as well
+                    prof = o.ProfileX()
+                    prof.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Profile "+o.GetXaxis().GetTitle())
+                    prof.SetTitle(o.GetTitle()+" Profile "+o.GetXaxis().GetTitle())
+                    histos.append(prof)
+                    proj = o.ProjectionY()
+                    proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetYaxis().GetTitle())
+                    proj.SetTitle(o.GetTitle()+" Projection "+o.GetYaxis().GetTitle())
+                    histos.append(proj)
+                    if not "#it{p}_{T}" in o.GetXaxis().GetTitle():
+                        proj = o.ProjectionX()
+                        proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetXaxis().GetTitle())
+                        proj.SetTitle(o.GetTitle()+" Projection "+o.GetXaxis().GetTitle())
+                        histos.append(proj)
+                elif "TH3":
+                    continue
+                elif "THnSparse" in o.ClassName():
+                    continue
+                else:
+                    print("We miss some histotypes...")
+    for dirName in Directories:
+        for h in histos:
+            if not dirName in h.GetName():
+                continue
+            if (f"Compare_{h.GetTitle()}") in canvas_list:
+                continue
+            else:
+                can = canvas("Ratio_"+h.GetTitle())
+                name = h.GetTitle()
+                histo = [h for h in histos if h.GetTitle() == name]
+                col = 0
+                can.cd()
+                for h in histo:
+                    col +=1
+                    nEntries = h.GetEntries()
+                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
+                    h.SetName(newName)#+": "+f"{nEntries}")
+                    h.SetLineColor(col)
+                    h.SetMarkerColor(col)
+                    h.SetMarkerStyle(22+col)
+                    h.SetStats(0)
+                    if col == 1:
+                        continue
+                    else:
+                        h.Sumw2()
+                        h.Divide(histo[0])
+                        h.GetYaxis().SetTitle("(DataSet/"+histo[0].GetName()+")")
+                        if col == 2:
+                            h.Draw("E")
+                        else:
+                            h.Draw("SAME")
+                    #input("Wait")
+                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
+                legend.Draw("SAME")
+                can.SetLogy()
+        if Save=="True":
+            saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/{dirName}Ratios.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
+        else:
+            print("Wait, we are at ")
+            clear_canvaslist()
+    print("Compared ratios of full dataset results")
+
+def compareTRD(DataSets={}, Save=""):
+    files = {}
+    histos = []
+    if len(DataSets) == 1:
+        f = TFile.Open(f"{DataSets[0]}","READ")
     else:
-        print("Wait, we are at ")
-        clear_canvaslist()
-
-    print("Compare full dataset results")
-    input("Wait")
-
-
+        for dataSet in DataSets:#make first one the base line for ratios and saving
+            print(dataSet)
+            f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
+            if not f or not f.IsOpen():
+                print("Did not get", f)
+                return
+            files[dataSet] = f
+            dir = f.Get(f"track-jet-qa/Kine").GetListOfKeys()
+            print(dir.ls())
+            # KEY: TH1F	pt;1	#it{p}_{T}
+            # KEY: TH1F	pt_TRD;1	#it{p}_{T} if track has a TRD match
+            #AAND
+            #histos.add("TrackPar/Sigma1Pt", "uncertainty over #it{p}_{T};#it{p}_{T} [GeV/c];#it{p}_{T}*#it{sigma1}{p}_{T};", {HistType::kTH2F, {{nBins, 0, 200}, {100, 0, 1}}});
+            #histos.add("TrackPar/Sigma1Pt_hasTRD", "uncertainty over #it{p}_{T} for tracks with TRD;#it{p}_{T} [GeV/c];#it{p}_{T}*#it{sigma1}{p}_{T};", {HistType::kTH2F, {{nBins, 0, 200}, {100, 0, 1}}});
+            #histos.add("TrackPar/Sigma1Pt_hasNoTRD", "uncertainty over #it{p}_{T} for tracks without TRD;#it{p}_{T} [GeV/c];#it{p}_{T}*#it{sigma1}{p}_{T};", {HistType::kTH2F, {{nBins, 0, 200}, {100, 0, 1}}});
+    
 
     
 def main():
@@ -338,9 +463,13 @@ def main():
 
     if args.Mode=="Tree" or args.Mode=="Full":
         drawPlots(args.Input, args.Mode, args.Save)
+        compareTRD([args.Input], args.Save)
+        
 
     if args.Mode=="CompareDataSets":# to compare Full results
         compareDataSets(args.DataSets, args.Save)
+        ratioDataSets(args.DataSets, args.Save)
+        #compareTRD(args.DataSets, args.Save)
 
 
     #compareCuts()
