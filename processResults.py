@@ -28,7 +28,7 @@ legends = []
 
 #########################
 # Johanna: 
-#   - fix TRD comparison legends(+this was very lengthly and should be improved)
+#   - fix TRD (this is very lengthly and should be improved)
 #   - add user specification
 #   - add comparison step for cutvariations
 #   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff; also add sigmaPt*pT to THnSparse !
@@ -547,6 +547,7 @@ def compareTRD(DataSets={}, Save=""):
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
         canPR = canvas("Compare Ratios TH2 Sigma1Pt Profile over pT")
+        canPR.Divide(1,3)
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
 
@@ -572,7 +573,7 @@ def compareTRD(DataSets={}, Save=""):
                 pt.SetMarkerColor(2)
                 pt.SetMarkerStyle(24)
                 ptTRD.SetLineColor(4)
-                ptTRD.SetMarkerStyle(25)
+                ptTRD.SetMarkerStyle(24)
                 ptTRD.SetMarkerColor(4)
                 pt.SetStats(0)
                 pt.SetTitle(" ")
@@ -586,7 +587,7 @@ def compareTRD(DataSets={}, Save=""):
                 pt.SetLineColor(2)
                 pt.SetMarkerColor(2)
                 ptTRD.SetLineColor(4)
-                ptTRD.SetMarkerStyle(25+nSet)
+                ptTRD.SetMarkerStyle(24+nSet)
                 ptTRD.SetMarkerColor(4)
                 pt.Draw("ESAME")
                 ptTRD.Draw("ESAME")
@@ -668,9 +669,15 @@ def compareTRD(DataSets={}, Save=""):
             prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
             prof.SetName(f"{dataSet} all tracks")
             prof.SetLineColor(1)
+            prof.SetMarkerStyle(24+nSet)
+            prof.SetMarkerColor(1)
             profTRD.SetName(f"track.hasTRD()")
+            profTRD.SetMarkerColor(2)
             profTRD.SetLineColor(2)
+            profTRD.SetMarkerStyle(24+nSet)
             profNoTRD.SetName(f"!track.hasTRD")
+            profNoTRD.SetMarkerStyle(24+nSet)
+            profNoTRD.SetMarkerColor(4)
             profNoTRD.SetLineColor(4)
             if dataSet==DataSets[0]:
                 prof.SetTitle(" ")
@@ -684,13 +691,23 @@ def compareTRD(DataSets={}, Save=""):
                 rProf = doRatio(prof,prof0,nSet)
                 rProfTRD = doRatio(profTRD,profTRD0,nSet)
                 rProfNoTRD = doRatio(profNoTRD,profNoTRD0,nSet)
-                canPR.cd()
+                canPR.cd(1)
                 rProf.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
+                rProf.SetMarkerStyle(24+nSet)
+                rProf.SetMarkerColor(1)
                 rProf.SetLineColor(1)
-                rProfTRD.SetLineColor(2)
-                rProfNoTRD.SetLineColor(4)
                 rProf.Draw("h")
+                canPR.cd(2)
+                rProfTRD.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
+                rProfTRD.SetLineColor(2)
+                rProfTRD.SetMarkerStyle(24+nSet)
+                rProfTRD.SetMarkerColor(2)
                 rProfTRD.Draw("hSAME")
+                canPR.cd(3)
+                rProfNoTRD.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
+                rProfNoTRD.SetLineColor(4)
+                rProfNoTRD.SetMarkerColor(4)
+                rProfNoTRD.SetMarkerStyle(24+nSet)
                 rProfNoTRD.Draw("hSAME")
                 #canPR.SetLogy()
                 canP.cd()
@@ -698,14 +715,12 @@ def compareTRD(DataSets={}, Save=""):
             profTRD.Draw("ESAME")
             profNoTRD.Draw("ESAME")
 
-            #canP.SetLogy()
+            canP.SetLogy()
             canP.cd()
             legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
                 
-            input("Wait")
-
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/TRD_checks.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
         else:
