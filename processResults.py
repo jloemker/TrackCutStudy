@@ -31,7 +31,7 @@ legends = []
 #   - add TRD comparison
 #   - add user specification
 #   - add comparison step for cutvariations
-#   - improve general comparison script - make axis pretty pipapo
+#   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff !
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
 #   
 #########################
@@ -430,6 +430,97 @@ def compareTRD(DataSets={}, Save=""):
     histos = []
     if len(DataSets) == 1:
         f = TFile.Open(f"{DataSets[0]}","READ")
+        dataSet=DataSets[0].strip("Results/"+"/AnalysisResults.root")
+        sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt")
+        sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD")
+        sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD")
+        
+        canS = canvas("TH2 Sigma1Pt vs Pt", x=800, y=1200)
+        canS.Divide(1,3)
+        canS.cd(1)
+        sigma1Pt.SetStats(0)
+        sigma1Pt.SetTitle("all tracks")
+        sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+        sigma1Pt.Draw("COLZ")
+        canS.cd(1).SetLogz()
+        canS.cd(2)
+        sigma1Pt_TRD.SetStats(0)
+        sigma1Pt_TRD.SetTitle("track.hasTRD()")
+        sigma1Pt_TRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+        sigma1Pt_TRD.Draw("COLZ")
+        canS.cd(2).SetLogz()
+        canS.cd(3)
+        sigma1Pt_noTRD.SetStats(0)
+        sigma1Pt_noTRD.SetTitle("!track.hasTRD()")
+        sigma1Pt_noTRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+        sigma1Pt_noTRD.Draw("COLZ")
+        canS.cd(3).SetLogz()
+
+        canP = canvas("TH2 Sigma1Pt Profile over pT")
+        prof = sigma1Pt.ProfileX()
+        profTRD = sigma1Pt_TRD.ProfileX()
+        profNoTRD = sigma1Pt_noTRD.ProfileX()
+        prof.SetStats(0)
+        prof.SetTitle(f"profiles of {dataSet}")
+        prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
+        prof.SetName("all tracks")
+        prof.SetLineColor(2)
+        profTRD.SetName("track.hasTRD()")
+        profTRD.SetLineColor(4)
+        profNoTRD.SetName("!track.hasTRD")
+        profNoTRD.SetLineColor(1)
+        prof.Draw("E")
+        profTRD.Draw("ESAME")
+        profNoTRD.Draw("ESAME")
+        canP.SetLogz()
+        canP.SetTopMargin(0.1)
+        legP = createLegend(x=[0.2, 0.4], y=[0.6, 0.8], objects=[prof, profTRD, profNoTRD])
+        legP.Draw()
+
+        pt = f.Get(f"track-jet-qa/Kine/pt")
+        ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD")
+
+        Npt = pt.GetEntries()
+        NptTRD = ptTRD.GetEntries()
+        pt.SetTitle(" ")
+        pt.SetName(f"{Npt}: tracks")
+        ptTRD.SetName(f"{NptTRD}: withTRD")
+
+        can = canvas("TH1F pT TRD ")
+        pt.SetLineColor(2)
+        pt.SetMarkerStyle(24)
+        pt.SetMarkerColor(2)
+        ptTRD.SetLineColor(4)
+        ptTRD.SetMarkerStyle(25)
+        ptTRD.SetMarkerColor(4)
+        pt.SetStats(0)
+        pt.SetTitle(f"{dataSet}")
+        pt.Draw("E")
+        ptTRD.Draw("ESAME")
+        can.SetLogy()
+        can.SetTopMargin(0.1)
+        leg = createLegend(x=[0.5, 0.85], y=[0.6,0.85], objects=[pt,ptTRD])
+        leg.Draw()
+
+        canR = canvas("TH1F pT TRD ratio")
+        r = pt.Clone()
+        r.Divide(ptTRD)
+        r.SetLineColor(2)
+        r.SetMarkerStyle(24)
+        r.SetMarkerColor(2)
+        r.SetStats(0)
+        r.GetYaxis().SetTitle("tracks/track.hasTRD()")
+        r.SetTitle(" ")
+        r.SetName(dataSet)
+        r.Draw("E")
+        canR.SetLogy()
+        legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
+        legR.Draw()
+        if Save=="True":
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")
+        else:
+            clear_canvaslist()
+        print(f"TRD checks for a {dataSet} are done")
     else:
         for dataSet in DataSets:#make first one the base line for ratios and saving
             print(dataSet)
@@ -439,7 +530,8 @@ def compareTRD(DataSets={}, Save=""):
                 return
             files[dataSet] = f
             dir = f.Get(f"track-jet-qa/Kine").GetListOfKeys()
-            print(dir.ls())
+            input("Wait")
+
             # KEY: TH1F	pt;1	#it{p}_{T}
             # KEY: TH1F	pt_TRD;1	#it{p}_{T} if track has a TRD match
             #AAND
@@ -462,7 +554,7 @@ def main():
     args = parser.parse_args()
 
     if args.Mode=="Tree" or args.Mode=="Full":
-        drawPlots(args.Input, args.Mode, args.Save)
+        #drawPlots(args.Input, args.Mode, args.Save)
         compareTRD([args.Input], args.Save)
         
 
@@ -473,6 +565,8 @@ def main():
 
 
     #compareCuts()
+#./processResults.py --Mode CompareDataSets --DataSets LHC23zzh_cpass1 LHC23zzh_cpass2 --Save True
+#./processResults.py --Mode Full --Input Results/LHC23zzh_cpass2/AnalysisResults.root --Save True
 
 main()
     
