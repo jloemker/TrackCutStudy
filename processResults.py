@@ -33,7 +33,6 @@ legends = []
 #   - add comparison step for cutvariations
 #   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff; also add sigmaPt*pT to THnSparse !
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
-#   
 #########################
 
 
@@ -424,17 +423,60 @@ def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
             clear_canvaslist()
     print("Compared ratios of full dataset results")
 
-def doRatio(pt,ptTRD, nSet):
+def doRatio(pt,ptTRD, nSet, title="", makerStyle=0):
     r = pt.Clone()
     r.SetStats(0)
     r.Divide(ptTRD)
     r.SetLineColor(nSet+1)
-    r.SetMarkerStyle(0)
+    r.SetMarkerStyle(makerStyle)
     r.SetMarkerColor(nSet+1)
-    r.GetYaxis().SetTitle("all tracks/track.hasTRD()")
+    r.GetYaxis().SetTitle(title)
     r.SetTitle(" ")
     return r
 
+def draw2DSigmaPt(title=" ",sigma1Pt=None):
+    sigma1Pt.SetStats(0)
+    sigma1Pt.SetTitle(title)
+    sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
+    sigma1Pt.Draw("COLZ")
+    return sigma1Pt
+
+def draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets):
+    if len(DataSets)==1:
+        canS.Divide(1,3)
+        canS.cd(1)
+        sigma1Pt = draw2DSigmaPt("all tracks", sigma1Pt)
+        canS.cd(1).SetLogz()
+        canS.cd(2)
+        sigma1Pt_TRD = draw2DSigmaPt("track.hasTRD()", sigma1Pt_TRD)
+        canS.cd(2).SetLogz()
+        canS.cd(3)
+        sigma1Pt_noTRD = draw2DSigmaPt("!track.hasTRD()", sigma1Pt_noTRD)
+        canS.cd(3).SetLogz()
+    else:
+        if dataSet == DataSets[0]:
+            canS.cd(1)
+            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
+            canS.cd(1).SetLogz()
+            canS.cd(2)
+            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
+            canS.cd(2).SetLogz()
+            canS.cd(3)
+            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
+            canS.cd(3).SetLogz()
+        elif(len(DataSets)==2):
+            canS.cd(4)
+            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
+            canS.cd(4).SetLogz()
+            canS.cd(5)
+            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
+            canS.cd(5).SetLogz()
+            canS.cd(6)
+            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
+            canS.cd(6).SetLogz()
+        else:
+            print("Not enought canvas splits for sigma1Pt !!!")
+    
 def compareTRD(DataSets={}, Save=""):
     files = {}
     histos = []
@@ -444,28 +486,10 @@ def compareTRD(DataSets={}, Save=""):
         sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt")
         sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD")
         sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD")
-        
-        canS = canvas("TH2 Sigma1Pt vs Pt", x=800, y=1200)
-        canS.Divide(1,3)
-        canS.cd(1)
-        sigma1Pt.SetStats(0)
-        sigma1Pt.SetTitle("all tracks")
-        sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-        sigma1Pt.Draw("COLZ")
-        canS.cd(1).SetLogz()
-        canS.cd(2)
-        sigma1Pt_TRD.SetStats(0)
-        sigma1Pt_TRD.SetTitle("track.hasTRD()")
-        sigma1Pt_TRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-        sigma1Pt_TRD.Draw("COLZ")
-        canS.cd(2).SetLogz()
-        canS.cd(3)
-        sigma1Pt_noTRD.SetStats(0)
-        sigma1Pt_noTRD.SetTitle("!track.hasTRD()")
-        sigma1Pt_noTRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-        sigma1Pt_noTRD.Draw("COLZ")
-        canS.cd(3).SetLogz()
 
+        canS = canvas("TH2 Sigma1Pt vs Pt", x=800, y=1200)
+        draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
+        #write a function that does this !
         canP = canvas("TH2 Sigma1Pt Profile over pT")
         prof = sigma1Pt.ProfileX()
         profTRD = sigma1Pt_TRD.ProfileX()
@@ -513,14 +537,7 @@ def compareTRD(DataSets={}, Save=""):
         leg.Draw()
 
         canR = canvas("TH1F pT TRD ratio")
-        r = pt.Clone()
-        r.Divide(ptTRD)
-        r.SetLineColor(2)
-        r.SetMarkerStyle(24)
-        r.SetMarkerColor(2)
-        r.SetStats(0)
-        r.GetYaxis().SetTitle("tracks/track.hasTRD()")
-        r.SetTitle(" ")
+        r = doRatio(pt,ptTRD,1,"tracks/track.hasTRD()",24)
         r.SetName(dataSet)
         r.Draw("E")
         canR.SetLogy()
@@ -531,8 +548,8 @@ def compareTRD(DataSets={}, Save=""):
         else:
             clear_canvaslist()
         print(f"TRD checks for a {dataSet} are done")
-    else:
 
+    else:
         can = canvas("Compare TH1F's pT TRD ")
         leg = createLegend(x=[0.25, 0.8], y=[0.5,0.85], columns=1, objects=[])
 
@@ -596,15 +613,14 @@ def compareTRD(DataSets={}, Save=""):
             leg.Draw()
             can.SetTopMargin(0.1)
             can.SetLogy()
-            r = doRatio(pt,ptTRD,nSet)                                          #do ratio of ratios in split canvas !
+            r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")                                          #do ratio of ratios in split canvas !
             canR.cd(1)
             if dataSet == DataSets[0]:
                 r.DrawCopy("E")
                 r0 = r.Clone()
             else:
-                dr = doRatio(r,r0,nSet)
+                dr = doRatio(r,r0,nSet, f"Ratio to {DataSets[0]}")
                 r.Draw("ESAME")
-                dr.GetYaxis().SetTitle(f"Ratio to {DataSets[0]}")
                 canR.cd()
                 canR.cd(2)
                 dr.Draw("ESAME")
@@ -619,46 +635,7 @@ def compareTRD(DataSets={}, Save=""):
             sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD")
 
             canS.cd()
-            if dataSet == DataSets[0]:
-                canS.cd(1)
-                sigma1Pt.SetStats(0)
-                sigma1Pt.SetTitle(f"{dataSet} all tracks")
-                sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt.Draw("COLZ")
-                canS.cd(1).SetLogz()
-                canS.cd(2)
-                sigma1Pt_TRD.SetStats(0)
-                sigma1Pt_TRD.SetTitle(f"{dataSet} track.hasTRD()")
-                sigma1Pt_TRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt_TRD.Draw("COLZ")
-                canS.cd(2).SetLogz()
-                canS.cd(3)
-                sigma1Pt_noTRD.SetStats(0)
-                sigma1Pt_noTRD.SetTitle(f"{dataSet} !track.hasTRD()")
-                sigma1Pt_noTRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt_noTRD.Draw("COLZ")
-                canS.cd(3).SetLogz()
-            elif(len(DataSets)==2):
-                canS.cd(4)
-                sigma1Pt.SetStats(0)
-                sigma1Pt.SetTitle(f"{dataSet} all tracks")
-                sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt.Draw("COLZ")
-                canS.cd(4).SetLogz()
-                canS.cd(5)
-                sigma1Pt_TRD.SetStats(0)
-                sigma1Pt_TRD.SetTitle(f"{dataSet} track.hasTRD()")
-                sigma1Pt_TRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt_TRD.Draw("COLZ")
-                canS.cd(5).SetLogz()
-                canS.cd(6)
-                sigma1Pt_noTRD.SetStats(0)
-                sigma1Pt_noTRD.SetTitle(f"{dataSet} !track.hasTRD()")
-                sigma1Pt_noTRD.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                sigma1Pt_noTRD.Draw("COLZ")
-                canS.cd(6).SetLogz()
-            else:
-                print("Not enought canvas splits for sigma1Pt !!!")
+            draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
             # we need this per period and the ratios of periods
             canP.cd()
             prof = sigma1Pt.ProfileX()
@@ -688,26 +665,14 @@ def compareTRD(DataSets={}, Save=""):
                 prof.Draw("E")
             else:
                 legP.AddEntry(prof, f"{prof.GetName()}", "lep")
-                rProf = doRatio(prof,prof0,nSet)
-                rProfTRD = doRatio(profTRD,profTRD0,nSet)
-                rProfNoTRD = doRatio(profNoTRD,profNoTRD0,nSet)
+                rProf = doRatio(prof,prof0,0,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
+                rProfTRD = doRatio(profTRD,profTRD0,1,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
+                rProfNoTRD = doRatio(profNoTRD,profNoTRD0,3, f"Ratios to {DataSets[0]}", makerStyle=24+nSet)
                 canPR.cd(1)
-                rProf.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
-                rProf.SetMarkerStyle(24+nSet)
-                rProf.SetMarkerColor(1)
-                rProf.SetLineColor(1)
                 rProf.Draw("h")
                 canPR.cd(2)
-                rProfTRD.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
-                rProfTRD.SetLineColor(2)
-                rProfTRD.SetMarkerStyle(24+nSet)
-                rProfTRD.SetMarkerColor(2)
                 rProfTRD.Draw("hSAME")
                 canPR.cd(3)
-                rProfNoTRD.GetYaxis().SetTitle(f"Ratios to {DataSets[0]}")
-                rProfNoTRD.SetLineColor(4)
-                rProfNoTRD.SetMarkerColor(4)
-                rProfNoTRD.SetMarkerStyle(24+nSet)
                 rProfNoTRD.Draw("hSAME")
                 #canPR.SetLogy()
                 canP.cd()
@@ -743,7 +708,7 @@ def main():
     args = parser.parse_args()
 
     if args.Mode=="Tree" or args.Mode=="Full":
-        drawPlots(args.Input, args.Mode, args.Save)
+        #drawPlots(args.Input, args.Mode, args.Save)
         compareTRD([args.Input], args.Save)
         
 
