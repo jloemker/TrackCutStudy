@@ -28,7 +28,6 @@ legends = []
 
 #########################
 # Johanna: 
-#   - fix TRD (this is very lengthly and should be improved)
 #   - add user specification
 #   - add comparison step for cutvariations
 #   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff; also add sigmaPt*pT to THnSparse !
@@ -476,7 +475,61 @@ def draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet,
             canS.cd(6).SetLogz()
         else:
             print("Not enought canvas splits for sigma1Pt !!!")
-    
+
+def profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, nSet=None):
+    prof = sigma1Pt.ProfileX()
+    profTRD = sigma1Pt_TRD.ProfileX()
+    profNoTRD = sigma1Pt_noTRD.ProfileX()
+    prof.SetStats(0)
+    prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
+    prof.SetName(f"{dataSet} all tracks")
+    prof.SetTitle(f"profiles of {dataSet}")
+    prof.SetLineColor(1)
+    profTRD.SetName("track.hasTRD()")
+    profTRD.SetLineColor(2)
+    profNoTRD.SetName("!track.hasTRD")
+    profNoTRD.SetLineColor(4)
+    if nSet is not None:
+        prof.SetTitle(" ")
+        prof.SetMarkerStyle(24+nSet)
+        prof.SetMarkerColor(1)
+        profTRD.SetMarkerColor(2)
+        profTRD.SetName(f"{dataSet} track.hasTRD()")
+        profTRD.SetMarkerStyle(24+nSet)
+        profNoTRD.SetName(f"{dataSet} !track.hasTRD")
+        profNoTRD.SetMarkerStyle(24+nSet)
+        profNoTRD.SetMarkerColor(4)
+    return prof, profTRD, profNoTRD
+
+def histosTRD(pt, ptTRD, dataSet, nSet=None):
+    Npt = pt.GetEntries()
+    NptTRD = ptTRD.GetEntries()
+    pt.SetTitle(" ")
+    pt.SetLineColor(2)
+    pt.SetMarkerColor(2)
+    ptTRD.SetLineColor(4)
+    ptTRD.SetMarkerColor(4)
+    pt.SetName(f"{dataSet}: all tracks")
+    ptTRD.SetName(f"{dataSet}: track.hasTRD()")
+    if nSet==None:
+        pt.SetMarkerStyle(24)
+        pt.SetMarkerColor(2)
+        ptTRD.SetMarkerStyle(25)
+        ptTRD.SetMarkerColor(4)
+        pt.SetStats(0)
+        pt.SetTitle(f"{dataSet}")
+        pt.SetName(f"{Npt}: tracks")
+        ptTRD.SetName(f"{NptTRD}: withTRD")
+    elif nSet==0:
+        pt.SetMarkerStyle(24)
+        ptTRD.SetMarkerStyle(24)
+        pt.SetStats(0)
+        pt.SetTitle(" ")
+    elif nSet>0:
+        pt.SetMarkerStyle(24+nSet)
+        ptTRD.SetMarkerStyle(24+nSet)
+
+
 def compareTRD(DataSets={}, Save=""):
     files = {}
     histos = []
@@ -489,20 +542,8 @@ def compareTRD(DataSets={}, Save=""):
 
         canS = canvas("TH2 Sigma1Pt vs Pt", x=800, y=1200)
         draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
-        #write a function that does this !
         canP = canvas("TH2 Sigma1Pt Profile over pT")
-        prof = sigma1Pt.ProfileX()
-        profTRD = sigma1Pt_TRD.ProfileX()
-        profNoTRD = sigma1Pt_noTRD.ProfileX()
-        prof.SetStats(0)
-        prof.SetTitle(f"profiles of {dataSet}")
-        prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
-        prof.SetName("all tracks")
-        prof.SetLineColor(2)
-        profTRD.SetName("track.hasTRD()")
-        profTRD.SetLineColor(4)
-        profNoTRD.SetName("!track.hasTRD")
-        profNoTRD.SetLineColor(1)
+        prof, profTRD, profNoTRD = profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, None)
         prof.Draw("E")
         profTRD.Draw("ESAME")
         profNoTRD.Draw("ESAME")
@@ -513,22 +554,8 @@ def compareTRD(DataSets={}, Save=""):
 
         pt = f.Get(f"track-jet-qa/Kine/pt")
         ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD")
-
-        Npt = pt.GetEntries()
-        NptTRD = ptTRD.GetEntries()
-        pt.SetTitle(" ")
-        pt.SetName(f"{Npt}: tracks")
-        ptTRD.SetName(f"{NptTRD}: withTRD")
-
         can = canvas("TH1F pT TRD ")
-        pt.SetLineColor(2)
-        pt.SetMarkerStyle(24)
-        pt.SetMarkerColor(2)
-        ptTRD.SetLineColor(4)
-        ptTRD.SetMarkerStyle(25)
-        ptTRD.SetMarkerColor(4)
-        pt.SetStats(0)
-        pt.SetTitle(f"{dataSet}")
+        histosTRD(pt, ptTRD, dataSet, None)
         pt.Draw("E")
         ptTRD.Draw("ESAME")
         can.SetLogy()
@@ -567,7 +594,6 @@ def compareTRD(DataSets={}, Save=""):
         canPR.Divide(1,3)
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
-
         nSet = 0
         for dataSet in DataSets:#make first one the base line for ratios and saving
             f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
@@ -580,32 +606,15 @@ def compareTRD(DataSets={}, Save=""):
             ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD")
 
             can.cd()
-            Npt = pt.GetEntries()
-            NptTRD = ptTRD.GetEntries()
-            pt.SetTitle(" ")
-            pt.SetName(f"{dataSet}: all tracks")
-            ptTRD.SetName(f"{dataSet}: track.hasTRD()")
             if dataSet == DataSets[0]:
-                pt.SetLineColor(2)
-                pt.SetMarkerColor(2)
-                pt.SetMarkerStyle(24)
-                ptTRD.SetLineColor(4)
-                ptTRD.SetMarkerStyle(24)
-                ptTRD.SetMarkerColor(4)
-                pt.SetStats(0)
-                pt.SetTitle(" ")
+                histosTRD(pt, ptTRD, dataSet, nSet)
                 pt.Draw("E")
                 ptTRD.Draw("ESAME")
                 leg.AddEntry(pt, f"{pt.GetName()}", "lp")
                 leg.AddEntry(ptTRD, f"{ptTRD.GetName()}", "lp")
             else:
                 nSet += 1
-                pt.SetMarkerStyle(24+nSet)
-                pt.SetLineColor(2)
-                pt.SetMarkerColor(2)
-                ptTRD.SetLineColor(4)
-                ptTRD.SetMarkerStyle(24+nSet)
-                ptTRD.SetMarkerColor(4)
+                histosTRD(pt, ptTRD, dataSet, nSet)
                 pt.Draw("ESAME")
                 ptTRD.Draw("ESAME")
                 leg.AddEntry(pt, f"{pt.GetName()}", "lp")
@@ -636,28 +645,9 @@ def compareTRD(DataSets={}, Save=""):
 
             canS.cd()
             draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
-            # we need this per period and the ratios of periods
             canP.cd()
-            prof = sigma1Pt.ProfileX()
-            profTRD = sigma1Pt_TRD.ProfileX()
-            profNoTRD = sigma1Pt_noTRD.ProfileX()
-            prof.SetStats(0)
-            #prof.SetTitle(f"profiles of ")
-            prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
-            prof.SetName(f"{dataSet} all tracks")
-            prof.SetLineColor(1)
-            prof.SetMarkerStyle(24+nSet)
-            prof.SetMarkerColor(1)
-            profTRD.SetName(f"track.hasTRD()")
-            profTRD.SetMarkerColor(2)
-            profTRD.SetLineColor(2)
-            profTRD.SetMarkerStyle(24+nSet)
-            profNoTRD.SetName(f"!track.hasTRD")
-            profNoTRD.SetMarkerStyle(24+nSet)
-            profNoTRD.SetMarkerColor(4)
-            profNoTRD.SetLineColor(4)
+            prof, profTRD, profNoTRD = profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, nSet)
             if dataSet==DataSets[0]:
-                prof.SetTitle(" ")
                 legP.AddEntry(prof, f"{prof.GetName()}", "lep")
                 prof0 = prof.Clone()
                 profTRD0 = profTRD.Clone()
@@ -674,18 +664,15 @@ def compareTRD(DataSets={}, Save=""):
                 rProfTRD.Draw("hSAME")
                 canPR.cd(3)
                 rProfNoTRD.Draw("hSAME")
-                #canPR.SetLogy()
                 canP.cd()
                 prof.Draw("ESAME")
             profTRD.Draw("ESAME")
             profNoTRD.Draw("ESAME")
-
             canP.SetLogy()
             canP.cd()
             legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
-                
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/TRD_checks.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
         else:
@@ -708,13 +695,13 @@ def main():
     args = parser.parse_args()
 
     if args.Mode=="Tree" or args.Mode=="Full":
-        #drawPlots(args.Input, args.Mode, args.Save)
+        drawPlots(args.Input, args.Mode, args.Save)
         compareTRD([args.Input], args.Save)
         
 
     if args.Mode=="CompareDataSets":# to compare Full results
-        #compareDataSets(args.DataSets, args.Save)
-        #ratioDataSets(args.DataSets, args.Save)
+        compareDataSets(args.DataSets, args.Save)
+        ratioDataSets(args.DataSets, args.Save)
         compareTRD(args.DataSets, args.Save)
 
 
