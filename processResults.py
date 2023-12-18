@@ -34,8 +34,6 @@ legends = []
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
 #########################
 
-
-
 def clear_canvaslist():
     global canvas_list
     l = list(canvas_list.keys())
@@ -92,7 +90,6 @@ def createLegend(x=[0.7, 0.92], y=[0.8, 0.95], title="",
     legends.append(leg)
     return leg
 
-
 def saveCanvasList(canvas_list, save_name, dataSet=None):
     n = 0
     for i in canvas_list:
@@ -144,7 +141,6 @@ def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
     for axis in range(0,NumberOfAxis):
         histo = hist.Projection(axis)
         histo.SetTitle(hist.GetAxis(axis).GetTitle())
-        #hlist.append(histo)
         if "Centrality" in (hist.GetAxis(axis).GetTitle()):
             continue
         for next_axis in range(0,NumberOfAxis):
@@ -162,17 +158,7 @@ def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
                 can.SetLogz()
                 h.SetTitle(" ")
                 h.Draw("COLZ")
-            #profX = h.ProfileX()
-            #profX.SetTitle("Profile X "+h.GetXaxis().GetTitle()+" "+h.GetYaxis().GetTitle())
-            #profY = h.ProfileY()
-            #profY.SetTitle("Profile Y "+h.GetXaxis().GetTitle()+" "+h.GetYaxis().GetTitle())
-            #hlist.append(profX)
-            #hlist.append(profY)
     if dirName==None:
-        #for h in hlist:
-        #    print(h.GetXaxis().GetTitle())
-        #    print(h.GetTitle())
-            #print(h.GetName())
         return hlist
 
 
@@ -209,13 +195,6 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 o.Draw("E")
             elif "TH2" in o.ClassName():
                 can = canvas(o.GetTitle())
-                #sigma 1/pT labels are ugly.
-                #if "#it{sigma1}{p}_{T}" in o.GetXaxis().GetTitle():
-                #    o.GetXaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                #    input("wait")
-                #if "p_{T} * sigma1{p}" == o.GetYaxis().GetTitle():
-                #    o.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-                #    input("wait")
                 can.SetLogz()
                 o.SetStats(0)
                 o.Draw("COLZ")
@@ -251,10 +230,8 @@ def drawPlots(InputDir="", Mode="", Save=""):
             if Mode=="Full":
                 save_name = f"Save/{dataSet}/{dirName}.pdf"
             saveCanvasList(canvas_list, save_name, dataSet)
-            #input("wait")
         else:
             print("we don't save this ...")
-            #input(dirName)
             clear_canvaslist()
 
 def compareDataSets(DataSets={}, Save=""):
@@ -267,7 +244,7 @@ def compareDataSets(DataSets={}, Save=""):
             return
         files[dataSet] = f
         for dirName in  Directories:
-            if dirName == "Centrality":#not calibrated
+            if dirName == "Centrality":#not (yet) calibrated
                 continue
             dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
             for obj in dir:
@@ -310,34 +287,38 @@ def compareDataSets(DataSets={}, Save=""):
                 can = canvas("Compare_"+h.GetTitle())
                 name = h.GetTitle()
                 histo = [h for h in histos if h.GetTitle() == name]
-                col = 0
+                col = [1,2,214,209,221]
                 can.cd()
+                c = -1
                 for h in histo:
-                    col +=1
+                    c +=1
                     nEntries = h.GetEntries()
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
-                    h.SetLineColor(col)
-                    h.SetMarkerColor(col)
-                    h.SetMarkerStyle(22+col)
+                    h.Scale(1/nEntries)
+                    h.GetYaxis().SetTitle("scaled by (1/nEntries)")
+                    h.SetLineColor(col[c])
+                    h.SetMarkerColor(col[c])
+                    h.SetMarkerStyle(23+c)
                     h.SetStats(0)
                     h.SetDirectory(0)
-                    if col == 1:
+                    if c == 0:
                         h.Draw("E")
                     else:
                         h.Draw("SAME")
                     #input("Wait")
-                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
+                legend = createLegend(objects=histo, x=[0, 1], y=[0.86,0.97], columns=len(DataSets))
                 legend.Draw("SAME")
                 can.SetLogy()
                 #input("wait..")
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/{dirName}.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
+            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/{dirName}.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
+            
         else:
             print("Wait, don't save this ... ")
             clear_canvaslist()
 
-def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
+def ratioDataSets(DataSets={}, Save=""):
     files = {}
     histos = []
     for dataSet in DataSets:#make first one the base line for ratios and saving
@@ -347,7 +328,7 @@ def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
             return
         files[dataSet] = f
         for dirName in  Directories:
-            if dirName == "Centrality":#not calibrated
+            if dirName == "Centrality":#not (yet) calibrated
                 continue
             dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
             for obj in dir:
@@ -360,7 +341,7 @@ def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
                     h = o.Clone()
                     h.SetName(dataSet+" "+dirName+" "+o.GetName())
                     histos.append(h)
-                elif "TH2" in o.ClassName():#to be done as well
+                elif "TH2" in o.ClassName():#to be improved as well
                     prof = o.ProfileX()
                     prof.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Profile "+o.GetXaxis().GetTitle())
                     prof.SetTitle(o.GetTitle()+" Profile "+o.GetXaxis().GetTitle())
@@ -390,33 +371,37 @@ def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
                 can = canvas("Ratio_"+h.GetTitle())
                 name = h.GetTitle()
                 histo = [h for h in histos if h.GetTitle() == name]
-                col = 0
+                col = [1,2,214,209,221]
+                c = -1
                 can.cd()
                 for h in histo:
-                    col +=1
+                    c +=1
                     nEntries = h.GetEntries()
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
-                    h.SetLineColor(col)
-                    h.SetMarkerColor(col)
-                    h.SetMarkerStyle(22+col)
+                    h.Scale(1/nEntries)
+                    h.GetYaxis().SetTitle("scaled by (1/nEntries)")
+                    h.SetLineColor(col[c])
+                    h.SetMarkerColor(col[c])
+                    h.SetMarkerStyle(23+c)
                     h.SetStats(0)
-                    if col == 1:
+                    if c == 0:
                         continue
                     else:
                         h.Sumw2()
                         h.Divide(histo[0])
                         h.GetYaxis().SetTitle("(DataSet/"+histo[0].GetName()+")")
-                        if col == 2:
+                        if c == 1:
                             h.Draw("E")
                         else:
                             h.Draw("SAME")
                     #input("Wait")
-                legend = createLegend(objects=histo, x=[0.2,0.8], y=[0.86,0.97], columns=len(DataSets))
+                legend = createLegend(objects=histo, x=[0 ,1], y=[0.86,0.97], columns=len(DataSets))
                 legend.Draw("SAME")
                 can.SetLogy()
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/{dirName}Ratios.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
+            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/{dirName}Ratios.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
+            
         else:
             print("Wait, we are at ")
             clear_canvaslist()
@@ -424,6 +409,7 @@ def ratioDataSets(DataSets={}, Save=""):#Legend + other histo types !
 
 def doRatio(pt,ptTRD, nSet, title="", makerStyle=0):
     r = pt.Clone()
+    r.Sumw2()
     r.SetStats(0)
     r.Divide(ptTRD)
     r.SetLineColor(nSet+1)
@@ -463,7 +449,7 @@ def draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet,
             canS.cd(3)
             sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
             canS.cd(3).SetLogz()
-        elif(len(DataSets)==2):
+        elif(dataSet == DataSets[1]):
             canS.cd(4)
             sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
             canS.cd(4).SetLogz()
@@ -473,6 +459,16 @@ def draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet,
             canS.cd(6)
             sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
             canS.cd(6).SetLogz()
+        elif(dataSet == DataSets[2]):
+            canS.cd(7)
+            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
+            canS.cd(7).SetLogz()
+            canS.cd(8)
+            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
+            canS.cd(8).SetLogz()
+            canS.cd(9)
+            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
+            canS.cd(9).SetLogz()
         else:
             print("Not enought canvas splits for sigma1Pt !!!")
 
@@ -571,7 +567,7 @@ def compareTRD(DataSets={}, Save=""):
         legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
         legR.Draw()
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")    
         else:
             clear_canvaslist()
         print(f"TRD checks for a {dataSet} are done")
@@ -622,15 +618,14 @@ def compareTRD(DataSets={}, Save=""):
             leg.Draw()
             can.SetTopMargin(0.1)
             can.SetLogy()
-            r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")                                          #do ratio of ratios in split canvas !
+            r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")
             canR.cd(1)
             if dataSet == DataSets[0]:
                 r.DrawCopy("E")
                 r0 = r.Clone()
             else:
                 dr = doRatio(r,r0,nSet, f"Ratio to {DataSets[0]}")
-                r.Draw("ESAME")
-                canR.cd()
+                r.DrawCopy("ESAME")
                 canR.cd(2)
                 dr.Draw("ESAME")
             canR.cd()
@@ -658,12 +653,20 @@ def compareTRD(DataSets={}, Save=""):
                 rProf = doRatio(prof,prof0,0,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
                 rProfTRD = doRatio(profTRD,profTRD0,1,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
                 rProfNoTRD = doRatio(profNoTRD,profNoTRD0,3, f"Ratios to {DataSets[0]}", makerStyle=24+nSet)
-                canPR.cd(1)
-                rProf.Draw("h")
-                canPR.cd(2)
-                rProfTRD.Draw("hSAME")
-                canPR.cd(3)
-                rProfNoTRD.Draw("hSAME")
+                if dataSet == DataSets[1]:
+                    canPR.cd(1)
+                    rProf.Draw("E")
+                    canPR.cd(2)
+                    rProfTRD.Draw("E")
+                    canPR.cd(3)
+                    rProfNoTRD.Draw("E")
+                if dataSet == DataSets[2]:
+                    canPR.cd(1)
+                    rProf.Draw("hSAME")
+                    canPR.cd(2)
+                    rProfTRD.Draw("hSAME")
+                    canPR.cd(3)
+                    rProfNoTRD.Draw("hSAME")
                 canP.cd()
                 prof.Draw("ESAME")
             profTRD.Draw("ESAME")
@@ -674,7 +677,8 @@ def compareTRD(DataSets={}, Save=""):
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/Compare{DataSets[0]}_to_{DataSets[1]}/TRD_checks.pdf", f"Compare{DataSets[0]}_to_{DataSets[1]}")
+            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/TRD_checks.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
+                
         else:
             print("Wait, we are at ")
             clear_canvaslist()
