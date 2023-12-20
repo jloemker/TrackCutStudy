@@ -28,8 +28,9 @@ legends = []
 
 #########################
 # Johanna: 
-#   - add user specification
-#   - add comparison step for cutvariations
+#   - add user specification (need input from Alice)
+#   - add comparison step for cutvariations (need input from Alice)
+#
 #   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff; also add sigmaPt*pT to THnSparse !
 #   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
 #########################
@@ -141,7 +142,7 @@ def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
     for axis in range(0,NumberOfAxis):
         histo = hist.Projection(axis)
         histo.SetTitle(hist.GetAxis(axis).GetTitle())
-        if "Centrality" in (hist.GetAxis(axis).GetTitle()):
+        if "Centrality" in (hist.GetAxis(axis).GetTitle()):#should add this soon !
             continue
         for next_axis in range(0,NumberOfAxis):
             if "Centrality" in (hist.GetAxis(next_axis).GetTitle()):
@@ -296,7 +297,7 @@ def compareDataSets(DataSets={}, Save=""):
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
                     h.Scale(1/nEntries)
-                    h.GetYaxis().SetTitle("scaled by (1/nEntries)")
+                    h.GetYaxis().SetTitle("scaled by (1/Intregral)")
                     h.SetLineColor(col[c])
                     h.SetMarkerColor(col[c])
                     h.SetMarkerStyle(23+c)
@@ -306,11 +307,9 @@ def compareDataSets(DataSets={}, Save=""):
                         h.Draw("E")
                     else:
                         h.Draw("SAME")
-                    #input("Wait")
                 legend = createLegend(objects=histo, x=[0, 1], y=[0.86,0.97], columns=len(DataSets))
                 legend.Draw("SAME")
                 can.SetLogy()
-                #input("wait..")
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/{dirName}.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
             
@@ -380,7 +379,7 @@ def ratioDataSets(DataSets={}, Save=""):
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
                     h.Scale(1/nEntries)
-                    h.GetYaxis().SetTitle("scaled by (1/nEntries)")
+                    h.GetYaxis().SetTitle("scaled by (1/Integral)")
                     h.SetLineColor(col[c])
                     h.SetMarkerColor(col[c])
                     h.SetMarkerStyle(23+c)
@@ -579,7 +578,6 @@ def compareTRD(DataSets={}, Save=""):
 
         canR = canvas("Compare Ratios of TH1F's pT TRD ")#, x=700, y=900)
         canR.Divide(1,2)
-        #legR = createLegend(x=[0.2, 0.8], y=[0.45,0.5], columns=2, objects=[])
 
         canS = canvas("TH2 Sigma1Pt vs Pt", x=1000, y=1000)
         canS.Divide(3,len(DataSets))
@@ -588,7 +586,7 @@ def compareTRD(DataSets={}, Save=""):
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
         canPR = canvas("Compare Ratios TH2 Sigma1Pt Profile over pT")
-        canPR.Divide(1,3)
+        canPR.Divide(len(DataSets)-1,3)
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
         nSet = 0
@@ -622,6 +620,7 @@ def compareTRD(DataSets={}, Save=""):
             can.SetLogy()
             r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")
             r.SetDirectory(0)
+            r.SetName(f"{dataSet}")
             rArr.append(r)
             #print(r)
 
@@ -661,23 +660,31 @@ def compareTRD(DataSets={}, Save=""):
                 prof.Draw("E")
             else:
                 legP.AddEntry(prof, f"{prof.GetName()}", "lep")
-                rProf = doRatio(prof,prof0,0,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
-                rProfTRD = doRatio(profTRD,profTRD0,1,f"Ratios to {DataSets[0]}",makerStyle=24+nSet)
-                rProfNoTRD = doRatio(profNoTRD,profNoTRD0,3, f"Ratios to {DataSets[0]}", makerStyle=24+nSet)
-                if dataSet == DataSets[1]:
+                rProf = doRatio(prof,prof0,0,f"{dataSet} / {DataSets[0]}",makerStyle=24+nSet)
+                rProfTRD = doRatio(profTRD,profTRD0,1,f"{dataSet} / {DataSets[0]}",makerStyle=24+nSet)
+                rProfNoTRD = doRatio(profNoTRD,profNoTRD0,3, f"{dataSet} / {DataSets[0]}", makerStyle=24+nSet)
+                if len(DataSets) == 2:
                     canPR.cd(1)
-                    rProf.Draw("E")
+                    rProf.DrawCopy("E")
                     canPR.cd(2)
-                    rProfTRD.Draw("E")
+                    rProfTRD.DrawCopy("E")
                     canPR.cd(3)
-                    rProfNoTRD.Draw("E")
-                elif dataSet == DataSets[2]:
-                    canPR.cd(1)
-                    rProf.Draw("hSAME")
-                    canPR.cd(2)
-                    rProfTRD.Draw("hSAME")
-                    canPR.cd(3)
-                    rProfNoTRD.Draw("hSAME")
+                    rProfNoTRD.DrawCopy("E")
+                elif len(DataSets) == 3:
+                    if dataSet == DataSets[1]:
+                        canPR.cd(1)
+                        rProf.DrawCopy("E")
+                        canPR.cd(3)
+                        rProfTRD.DrawCopy("E")
+                        canPR.cd(5)
+                        rProfNoTRD.DrawCopy("E")
+                    elif dataSet == DataSets[2]:
+                        canPR.cd(2)
+                        rProf.DrawCopy("E")
+                        canPR.cd(4)
+                        rProfTRD.DrawCopy("E")
+                        canPR.cd(6)
+                        rProfNoTRD.DrawCopy("E")
                 canP.cd()
                 prof.Draw("ESAME")
             profTRD.Draw("ESAME")
@@ -687,7 +694,6 @@ def compareTRD(DataSets={}, Save=""):
             legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
-            input("Wait")
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/TRD_checks.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
                 
@@ -716,8 +722,8 @@ def main():
         
 
     if args.Mode=="CompareDataSets":# to compare Full results
-        #compareDataSets(args.DataSets, args.Save)
-        #ratioDataSets(args.DataSets, args.Save)
+        compareDataSets(args.DataSets, args.Save)
+        ratioDataSets(args.DataSets, args.Save)
         compareTRD(args.DataSets, args.Save)
 
 
