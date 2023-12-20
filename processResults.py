@@ -292,7 +292,7 @@ def compareDataSets(DataSets={}, Save=""):
                 c = -1
                 for h in histo:
                     c +=1
-                    nEntries = h.GetEntries()
+                    nEntries = h.Integral()
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
                     h.Scale(1/nEntries)
@@ -376,7 +376,7 @@ def ratioDataSets(DataSets={}, Save=""):
                 can.cd()
                 for h in histo:
                     c +=1
-                    nEntries = h.GetEntries()
+                    nEntries = h.Integral()
                     newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
                     h.SetName(newName)#+": "+f"{nEntries}")
                     h.Scale(1/nEntries)
@@ -416,6 +416,7 @@ def doRatio(pt,ptTRD, nSet, title="", makerStyle=0):
     r.SetMarkerStyle(makerStyle)
     r.SetMarkerColor(nSet+1)
     r.GetYaxis().SetTitle(title)
+    r.SetDirectory(0)
     r.SetTitle(" ")
     return r
 
@@ -578,7 +579,7 @@ def compareTRD(DataSets={}, Save=""):
 
         canR = canvas("Compare Ratios of TH1F's pT TRD ")#, x=700, y=900)
         canR.Divide(1,2)
-        legR = createLegend(x=[0.2, 0.8], y=[0.45,0.5], columns=2, objects=[])
+        #legR = createLegend(x=[0.2, 0.8], y=[0.45,0.5], columns=2, objects=[])
 
         canS = canvas("TH2 Sigma1Pt vs Pt", x=1000, y=1000)
         canS.Divide(3,len(DataSets))
@@ -591,6 +592,7 @@ def compareTRD(DataSets={}, Save=""):
         legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
 
         nSet = 0
+        rArr = []
         for dataSet in DataSets:#make first one the base line for ratios and saving
             f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
             if not f or not f.IsOpen():
@@ -619,20 +621,29 @@ def compareTRD(DataSets={}, Save=""):
             can.SetTopMargin(0.1)
             can.SetLogy()
             r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")
+            r.SetDirectory(0)
+            rArr.append(r)
+            #print(r)
+
             canR.cd(1)
             if dataSet == DataSets[0]:
                 r.DrawCopy("E")
                 r0 = r.Clone()
+                r0.SetDirectory(0)
             else:
                 dr = doRatio(r,r0,nSet, f"Ratio to {DataSets[0]}")
                 r.DrawCopy("ESAME")
                 canR.cd(2)
-                dr.Draw("ESAME")
+                if dataSet ==DataSets[1]:
+                    dr.DrawCopy("E")
+                else:
+                    dr.DrawCopy("ESAME")
             canR.cd()
-            legR.AddEntry(r, f"{dataSet}", "le")
-            legR.Draw("")
-            canR.cd(1).SetLogy()
-            canR.cd(2).SetLogy()
+            if dataSet == DataSets[len(DataSets)-1]:
+                legR = createLegend(x=[0.2, 0.8], y=[0.45,0.5], columns=2, objects=rArr)
+                legR.Draw()
+                canR.cd(1).SetLogy()
+                canR.cd(2).SetLogy()
 
             sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt")
             sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD")
@@ -660,7 +671,7 @@ def compareTRD(DataSets={}, Save=""):
                     rProfTRD.Draw("E")
                     canPR.cd(3)
                     rProfNoTRD.Draw("E")
-                if dataSet == DataSets[2]:
+                elif dataSet == DataSets[2]:
                     canPR.cd(1)
                     rProf.Draw("hSAME")
                     canPR.cd(2)
@@ -676,6 +687,7 @@ def compareTRD(DataSets={}, Save=""):
             legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
+            input("Wait")
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/TRD_checks.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
                 
@@ -704,8 +716,8 @@ def main():
         
 
     if args.Mode=="CompareDataSets":# to compare Full results
-        compareDataSets(args.DataSets, args.Save)
-        ratioDataSets(args.DataSets, args.Save)
+        #compareDataSets(args.DataSets, args.Save)
+        #ratioDataSets(args.DataSets, args.Save)
         compareTRD(args.DataSets, args.Save)
 
 
