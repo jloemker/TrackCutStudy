@@ -1,22 +1,30 @@
-# This script is able to produce a configuration file for all the Cut Variations that one wants to apply
+# \author Alice Caluisi <alice.caluisi@cern.ch>
+# \since December 2023
+
+#
+# Task performing cut variations on trees analysis results
+# The produced results are called AnalysisResults_cutName.root and are stored in Results/LHC_Test/CutVariations folder
+# To run the task, type: $> bash CutVar.sh ../Results/LHC_Test/
+#
 
 #!/bin/bash
 
 reset
-Results="$@" # Directory to store the results
+Results="$@" #Directory where to store the results
 CfgDir=$(dirname "$0")
 
-# Create subdirectory for CutVariation in Results folder
+#Create a subdirectory for CutVariation in Results folder
 mkdir -p "${Results}/CutVariations/"
 echo "${Results}/AnalysisResults.root" > list.txt 
 
-# Define an array of cuts
+#Define an array of all the cuts I want to apply
 cuts=(
     "maxChi2PerClusterITS=30"
     "maxChi2PerClusterITS=40"
+    "maxChi2PerClusterTPC=6"
 )
 
-# Function to generate the standard configuration
+#Function to generate the standard configuration
 generate_standard_config() {
     local configFile="${CfgDir}/combined_config.json"
     cat << EOF > "$configFile"
@@ -32,19 +40,19 @@ generate_standard_config() {
         "aod-file": "@list.txt"
     },
     "track-jet-qa": {
-        "fractionOfEvents": "3",
+        "fractionOfEvents": "2",
         "ValVtx": "10",
         "ValCutEta": "0.800000012",
-        "minPt": "0.1000000060",
+        "minPt": "0.150000006",
         "maxPt": "9.9999998e+10",
         "fillMultiplicity": "true",
         "globalTrack": "false",
         "globalTrackWoPtEta": "false",
         "globalTrackWoDCA": "false",
         "customTrack": "true",
-        "itsPattern": "0",
-        "requireITS": "true",
-        "requireTPC": "true",
+        "itsPattern": "1",
+        "requireITS": "false",
+        "requireTPC": "false",
         "requireGoldenChi2": "false",
         "minNCrossedRowsTPC": "60",
         "minNCrossedRowsOverFindableClustersTPC": "0.699999988",
@@ -89,71 +97,17 @@ EOF
     echo "$configFile"
 }
 
-# Function to append configuration for a given cut
+#Function to append to the standard configuration the configuration for each single cut
 append_config_for_cut() {
     local cutName=$1
     local cutValue=$2
     local configFile=$3
 
-    cat << EOF >> "$configFile"
-    "track-jet-qa${cutName}${cutValue}": {
-        "fractionOfEvents": "2",
-        "ValVtx": "10",
-        "ValCutEta": "0.800000012",
-        "minPt": "0.150000006",
-        "maxPt": "9.9999998e+10",
-        "fillMultiplicity": "true",
-        "globalTrack": "false",
-        "globalTrackWoPtEta": "false",
-        "globalTrackWoDCA": "false",
-        "customTrack": "true",
-        "itsPattern": "1",
-        "requireITS": "false",
-        "requireTPC": "false",
-        "requireGoldenChi2": "false",
-        "minNCrossedRowsTPC": "60",
-        "minNCrossedRowsOverFindableClustersTPC": "0.699999988",
-        "maxChi2PerClusterTPC": "7",
-        "maxChi2PerClusterITS": "$cutValue",
-        "maxDcaXYFactor": "1",
-        "maxDcaZ": "3",
-        "minTPCNClsFound": "0",
-        "nBins": "200",
-        "binsMultiplicity": {
-            "values": [
-                "100",
-                "0",
-                "100"
-            ]
-        },
-        "binsPercentile": {
-            "values": [
-                "100",
-                "0",
-                "100"
-            ]
-        },
-        "binsPt": {
-            "values": [
-                "200",
-                "0",
-                "200"
-            ]
-        },
-        "binsSigma1OverPt": {
-            "values": [
-                "200",
-                "0",
-                "200"
-            ]
-        },
-        "processFull": "false",
-        "processDerived": "true"
-    },
-EOF
+    #Copy the standard track-jet-qa configuration and perform the cut variation
+    sed "/\"track-jet-qa\"/,\$!d; s/\"track-jet-qa\"/\"track-jet-qa${cutName}${cutValue}\"/; s/\"$cutName\": \"[^\"]*\"/\"$cutName\": \"$cutValue\"/" "$configFile" >> "$configFile"
 }
 
-# Function to finalize the configuration file
+#Function to finalize the overall configuration
 finalize_config_file() {
     local configFile=$1
     cat << EOF >> "$configFile"
@@ -163,7 +117,7 @@ finalize_config_file() {
 EOF
 }
 
-# Function to run the analysis with the configuration
+#Run the analysis with the configuration
 runSpec() {
     local configPath=$1
     local cutName=$2
@@ -176,22 +130,20 @@ runSpec() {
     mv AnalysisResults.root "${Results}/CutVariations/AnalysisResults_${suffix}.root"
 }
 
-
-# Generate the standard configuration
+#Generate the standard configuration
 configFile=$(generate_standard_config)
 
-# Append each cut variation to the configuration
+#Append each cut variation to the configuration
 for cut in "${cuts[@]}"; do
     IFS='=' read -r cutName cutValue <<< "$cut"
     append_config_for_cut "$cutName" "$cutValue" "$configFile"
 done
 
-# Finalize the configuration file
+#Finalize the configuration file
 finalize_config_file "$configFile"
 
-# Run analysis with the final configuration for each cut
+#Run analysis with the final configuration for each cut
 for cut in "${cuts[@]}"; do
     IFS='=' read -r cutName cutValue <<< "$cut"
     runSpec "$configFile" "$cutName" "$cutValue"
 done
-
