@@ -2,21 +2,12 @@
 # \since December 2023
 
 #
-# Task performing cut variations on trees analysis results
-# The produced results are called AnalysisResults_cutName.root and are stored in Results/LHC_Test/CutVariations folder
-# To run the task, type: $> bash CutVar.sh ../Results/LHC_Test/
+# Task performing cut variations on trees analysis results - No here you just want to create a config file for the running script
+# The produced results are called AnalysisResults_cutName.root and are stored in Results/LHC_Test/CutVariations folder 
+# To run the task, type: $> bash CutVar.sh ../Results/LHC_Test
 #
 
 #!/bin/bash
-
-reset
-Results="$@" #Directory where to store the results
-CfgDir=$(dirname "$0")
-
-#Create a subdirectory for CutVariation in Results folder
-mkdir -p "${Results}/CutVariations/"
-echo "${Results}/AnalysisResults.root" > list.txt 
-
 #Define an array of all the cuts I want to apply
 cuts=(
     "maxChi2PerClusterITS=30"
@@ -26,7 +17,7 @@ cuts=(
 
 #Function to generate the standard configuration
 generate_standard_config() {
-    local configFile="${CfgDir}/combined_config.json"
+    local configFile="combined_config.json"
     cat << EOF > "$configFile"
 {
     "internal-dpl-clock": "",
@@ -104,30 +95,19 @@ append_config_for_cut() {
     local configFile=$3
 
     #Copy the standard track-jet-qa configuration and perform the cut variation
-    sed "/\"track-jet-qa\"/,\$!d; s/\"track-jet-qa\"/\"track-jet-qa${cutName}${cutValue}\"/; s/\"$cutName\": \"[^\"]*\"/\"$cutName\": \"$cutValue\"/" "$configFile" >> "$configFile"
+    sed "/\"track-jet-qa\"/,\$!d; s/\"track-jet-qa\"/\"track-jet-qa${cutName}${cutValue}\"/; s/\"$cutName\": \"[^\"]*\"/\"$cutName\": \"$cutValue\"/" "$configFile" >> "cut_config.json"
 }
 
 #Function to finalize the overall configuration
 finalize_config_file() {
     local configFile=$1
+    cat "cut_config.json" >> "$configFile"
+    rm "cut_config.json"
     cat << EOF >> "$configFile"
     "internal-dpl-aod-global-analysis-file-sink": "",
     "internal-dpl-injected-dummy-sink": ""
 }
 EOF
-}
-
-#Run the analysis with the configuration
-runSpec() {
-    local configPath=$1
-    local cutName=$2
-    local cutValue=$3
-    local suffix="${cutName}${cutValue}"
-
-    Cfg="--configuration json://${configPath} -b"
-    
-    o2-analysis-je-track-jet-qa $Cfg --workflow-suffix "$suffix"
-    mv AnalysisResults.root "${Results}/CutVariations/AnalysisResults_${suffix}.root"
 }
 
 #Generate the standard configuration
@@ -142,8 +122,5 @@ done
 #Finalize the configuration file
 finalize_config_file "$configFile"
 
-#Run analysis with the final configuration for each cut
-for cut in "${cuts[@]}"; do
-    IFS='=' read -r cutName cutValue <<< "$cut"
-    runSpec "$configFile" "$cutName" "$cutValue"
-done
+mv "$configFile" "configs/$configFile"
+#Run analysis with the final configuration for each cut -> Use runcutvar.sh for the running; simply change the file name.
