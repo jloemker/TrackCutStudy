@@ -1,0 +1,67 @@
+{
+    "internal-dpl-clock": "",
+    "internal-dpl-aod-reader": {
+        "time-limit": "0",
+        "orbit-offset-enumeration": "0",
+        "orbit-multiplier-enumeration": "0",
+        "start-value-enumeration": "0",
+        "end-value-enumeration": "-1",
+        "step-value-enumeration": "1",
+        "aod-file": "@list.txt"
+    },
+    "track-jet-qaminPt02": {
+        "ValVtx": "10",
+        "ValCutEta": "0.800000012",
+        "minPt": "0.200000003",
+        "maxPt": "9.9999998e+10",
+        "fillMultiplicity": "true",
+        "globalTrack": "false",
+        "globalTrackWoPtEta": "false",
+        "globalTrackWoDCA": "false",
+        "customTrack": "false",
+        "itsPattern": "1",
+        "requireITS": "false",
+        "requireTPC": "false",
+        "requireGoldenChi2": "false",
+        "minNCrossedRowsTPC": "60",
+        "minNCrossedRowsOverFindableClustersTPC": "0.699999988",
+        "maxChi2PerClusterTPC": "7",
+        "maxChi2PerClusterITS": "36",
+        "maxDcaXYFactor": "1",
+        "maxDcaZ": "3",
+        "minTPCNClsFound": "0",
+        "nBins": "200",
+        "binsMultiplicity": {
+            "values": [
+                "100",
+                "0",
+                "100"
+            ]
+        },
+        "binsPercentile": {
+            "values": [
+                "100",
+                "0",
+                "100"
+            ]
+        },
+        "binsPt": {
+            "values": [
+                "200",
+                "0",
+                "200"
+            ]
+        },
+        "binsSigma1OverPt": {
+            "values": [
+                "200",
+                "0",
+                "200"
+            ]
+        },
+        "processFull": "false",
+        "processDerived": "true"
+    },
+    "internal-dpl-aod-global-analysis-file-sink": "",
+    "internal-dpl-injected-dummy-sink": ""
+}
