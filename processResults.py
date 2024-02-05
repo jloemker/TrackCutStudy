@@ -169,14 +169,7 @@ def main():
             dataSetArr = re.findall(r'\/.*?\/', file)
             dataSet=dataSetArr[0].strip("/")
             DataSets.append(dataSet)
-        #compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")
+        compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")
         compareTRD(DataSets, args.Save)
-        
-    #if args.Mode=="CompareDataSets":# to compare Full results
-        #compareDataSets(args.DataSets, args.Save)
-        #ratioDataSets(args.DataSets, args.Save)
-        #compareTRD(args.DataSets, args.Save)
-#./processResults.py --Mode Full --Input Results/LHC23zzh_cpass2/AnalysisResults.root --Save True
-
 main()
     
