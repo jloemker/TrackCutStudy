@@ -97,6 +97,31 @@ def plotResults(DataSet, Save="",CutVar=[]):
             print("we don't save this ...")
             clear_canvaslist()
 
+def generate_cutVarArr(Type):
+    cutVarArr = []
+    All = ["maxChi2PerClusterITS30", "maxChi2PerClusterITS42", 
+           "maxChi2PerClusterTPC2", "maxChi2PerClusterTPC3", "maxChi2PerClusterTPC5", "maxChi2PerClusterTPC6",
+           "maxDcaZ1", "maxDcaZ3",
+           "maxDcaXY0_5", "maxDcaXY1", "maxDcaXY1_5", "maxDcaXY2_5",  "maxDcaXY3", 
+           "minNCrossedRowsOverFindableClustersTPC0_6", "minNCrossedRowsOverFindableClustersTPC0_7",
+             "minNCrossedRowsOverFindableClustersTPC0_9", "minNCrossedRowsOverFindableClustersTPC1_0",
+           "minNCrossedRowsTPC110", "minNCrossedRowsTPC60", "minNCrossedRowsTPC80",
+           "globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack",
+           "itsPattern0", "itsPattern1", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3"]
+    if "selections" in Type:
+        cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
+    if "vs" in Type:
+        cutVarArr.append("globalTrackWoPtEta")
+        elements = [n for n in All if (Type[1] in n)]#just for the first case...we can work on this..
+        for element in elements:
+            cutVarArr.append(element)
+    else:
+        elements = [n for n in All if (Type[0] in n)]#just for the first case...we can work on this..
+        for element in elements:
+            cutVarArr.append(element)
+    return cutVarArr
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--CutVar", "-c", type=str,
@@ -109,9 +134,16 @@ def main():
                         default=["False", "True"], help="If you set this flag, it will compare the cutvariations in 1D")
     args = parser.parse_args()
 
+    arr = generate_cutVarArr(args.CutVar)
+
     if args.Compare == "True":
-        compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=args.CutVar, doRatios=True)
+        #compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=args.CutVar, doRatios=True)
+        compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True)
+
     else:
-        for cut in args.CutVar:
+        for cut in arr:
+            #plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
             plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
+            
+#./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "maxDcaZ1" --Save True
 main()
