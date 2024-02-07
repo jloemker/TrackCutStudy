@@ -15,7 +15,8 @@ def doRatio(pt,ptTRD, nSet, title="", makerStyle=0):
     r = pt.Clone()
     r.Sumw2()
     r.SetStats(0)
-    r.Divide(ptTRD)
+    if ptTRD != 0:
+        r.Divide(ptTRD)
     r.SetLineColor(nSet+1)
     r.SetMarkerStyle(makerStyle)
     r.SetMarkerColor(nSet+1)
@@ -175,7 +176,8 @@ def compareTRD(DataSets={}, Save=""):
         legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
         legR.Draw()
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")    
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")   
+            clear_canvaslist() 
         else:
             input("wait before closing - this will not be saved !")
             clear_canvaslist()
@@ -298,13 +300,14 @@ def compareTRD(DataSets={}, Save=""):
                 prof.Draw("ESAME")
             profTRD.Draw("ESAME")
             profNoTRD.Draw("ESAME")
-            canP.SetLogy()
+            #canP.SetLogy()
             canP.cd()
             legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
             legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
             legP.Draw("SAME")
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare_{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/TRD_checks.pdf", f"Compare_{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")         
+            clear_canvaslist()
         else:
             print("Wait, we are at ")
             clear_canvaslist()

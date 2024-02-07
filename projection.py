@@ -5,7 +5,7 @@ Collection of functions -- i should really improve this; but for now it does the
 """
 
 import ROOT
-from common import canvas
+from common import canvas, canvas_list
 
 def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, output=None, dataSet=None):
     if (dim == 0) or (dim == dim_min):
@@ -73,13 +73,15 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
 def projectCorrelationsTo2D(o, axis, output=None):
     for a in axis:
         h = o.Projection(a[0],a[1])
-        can = canvas(h.GetTitle())
-        h.SetStats(0)
         if output != None:
             output.append(h)
+        elif h.GetTitle() in canvas_list:
+            continue
         else:
-            h.Draw("COLZ")
             h.SetName(h.GetTitle())
+            can = canvas(h.GetTitle())
+            h.SetStats(0)
+            h.Draw("COLZ")
         #can.SetLogz()
 
 def profile2DProjection(o, axis, output=None, dataSet=None):

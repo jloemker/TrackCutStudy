@@ -62,7 +62,7 @@ def saveCanvasList(canvas_list, save_name, dataSet=None):
         n += 1
         if n == len(canvas_list):
             canvas_list[i].SaveAs(f"{save_name}]")
-    clear_canvaslist()
+    #clear_canvaslist()
 
 def createLegend(x=[0.7, 0.92], y=[0.8, 0.95], title="",
                      columns=1, objects=None, linecolor=0):

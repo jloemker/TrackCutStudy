@@ -139,6 +139,7 @@ def drawPlots(InputDir="", Mode="", Save=""):
         dataSet=dataSetArr[0].strip("/")
         print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
         saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
+        clear_canvaslist()
     else:
         print("we don't save this ...")
         clear_canvaslist()
@@ -169,7 +170,7 @@ def main():
             dataSetArr = re.findall(r'\/.*?\/', file)
             dataSet=dataSetArr[0].strip("/")
             DataSets.append(dataSet)
-        compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")
+        compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")#needs a fix for division by 0 !
         compareTRD(DataSets, args.Save)
 main()
     
