@@ -1,6 +1,9 @@
 #!/bin/bash
 
-mergeRuns=merge_runs.txt
+store=/data/alice/jlomker/LHC23_PbPb_pass1
+mkdir -p $store
+mergeRuns=$store/merge_runs.txt
+rm -rf $mergeRuns
 touch $mergeRuns
 
 IFS=, read -a runs < runs.txt # cp the running list from hyperloop into runs.txt
@@ -10,27 +13,36 @@ c=0
 for i in "${runs[@]}"
 do
   echo "Run [$i]: ${hyperpath["${c}"]}"
-  mkdir -p $i/
-  input=$i/files_per_run.list
-  merge=$i/merge_per_run.txt
+  mkdir -p $store/$i/
+  #mkdir -p $store/$i/merged/
+  input=$store/$i/files_per_run.list
+  merge=$store/$i/merge_per_run.txt
+  rm -rf $merge
   touch $input
+  touch $merge
   ./alien_find_jl.sh "${hyperpath["${c}"]}"/AOD/ AO2D.root > $input
   ((c+=1))
   j=0
   while IFS= read -r line
   do
     [[ “$line” =~ ^#.*$ ]] && continue
-    mkdir -p $i/$j/
-    alien_cp $line file:$i/$j/AO2D.root
+    mkdir -p $store/$i/$j/
+    alien_cp $line file:$store/$i/$j/AO2D.root
     ((j+=1))
-    echo $j/AO2D.root >> $merge
+    echo $store/$j/AO2D.root >> $merge
   done < $input
+done
+echo "all files downloaded"
 
-  cd $i/
+for i in "${runs[@]}"
+do
+  cd $store/$i/
   o2-aod-merger --input merge_per_run.txt
   cd ../
-  echo $i/AO2D.root >> $mergeRuns
+  echo $store/$i/AO2D.root >> $mergeRuns
+  echo "merged run $i"
 done
+
 o2-aod-merger --input merge_runs.txt # could be that this does not work, but the merger has the --help option too !
 mv AO2D.root AnalysisResults_trees.root # renaming into the _trees.root such that we only need to move this into the proper ../Results/LHC_Period/ 
 
