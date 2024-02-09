@@ -1,6 +1,6 @@
 #!/bin/bash
 
-store=/data/alice/jlomker/LHC23_PbPb_pass1
+store=/dcache/alice/jlomker/LHC23_PbPb_pass1
 mkdir -p $store
 mergeRuns=$store/merge_runs.txt
 rm -rf $mergeRuns
@@ -17,7 +17,6 @@ do
   #mkdir -p $store/$i/merged/
   input=$store/$i/files_per_run.list
   merge=$store/$i/merge_per_run.txt
-  rm -rf $merge
   touch $input
   touch $merge
   ./alien_find_jl.sh "${hyperpath["${c}"]}"/AOD/ AO2D.root > $input
