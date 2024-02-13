@@ -209,4 +209,4 @@ done
 #Finalize the configuration file
 finalize_config_file "$configFile"
 
-mv "$configFile" "configs/$configFile"
+#mv "$configFile" "configs/$configFile"

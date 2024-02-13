@@ -1,12 +1,19 @@
 #!/bin/bash
 
-reset
+#reset
 #Results="$@" #directory to tress as command line argument: bash CutVar.sh ../Results/LHC_Test
 # submit to the grid via: qsub runCutvar_stbc.sh
 
 Results="/dcache/alice/jlomker/LHC23_PbPb_pass1/544510"
 Base="/data/alice/jlomker/alice/TrackCutStudy/CutVariations"
-eval $(/data/alice/jlomker/alice/TrackCutStudy/Download/./load-alien-tag-thx-gijs)  
+#source /data/alice/jlomker/alice/TrackCutStudy/Download/load-alien-tag-thx-gijs
+source /cvmfs/alice.cern.ch/etc/login.sh
+cd $TMPDIR
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240213-0100-1)
+
+mkdir -p johanna
+cd johanna
+#eval $(alienv printenv VO_ALICE@O2Physics::daily-20240213-0100-1) 
 
 # these cuts will be automatically converted to a) generate the config file and b) run the function runSpec
 cuts=(
@@ -44,7 +51,7 @@ cuts=(
 ${Base}/configs/./generateConfig.sh "${cuts[@]}"
 
 #configs/./generateConfig.sh "${cuts[@]}"
-mv ${Base}/configs/generated_config.json ${Base}/generated_config.json
+#mv ${Base}/configs/generated_config.json generated_config.json
 
 mkdir -p "${Results}/CutVariations/" #creates subdirectory for CutVariation in Results section where you keep your data
 echo "${Results}/AO2D.root" > list.txt # generates the list for the config file
@@ -52,8 +59,8 @@ echo "${Results}/AO2D.root" > list.txt # generates the list for the config file
 Cfg="--configuration json://generated_config.json -b" # this is produced with generateConfig.sh
 
 function runSpec {
-        o2-analysis-je-track-jet-qa --configuration json://${Base}/generated_config.json -b --workflow-suffix $1
-        mv AnalysisResults.root ${Results}/CutVariations/AnalysisResults_$1.root
+        o2-analysis-je-track-jet-qa --configuration json://generated_config.json -b --workflow-suffix $1
+        cp AnalysisResults.root ${Results}/CutVariations/AnalysisResults_$1.root
     }
 
 for cut in "${cuts[@]}"; do
@@ -73,4 +80,6 @@ for cut in "${cuts[@]}"; do
     fi
 done
 
+cd ..
+rm -rf johanna
 
