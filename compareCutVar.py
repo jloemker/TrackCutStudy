@@ -52,41 +52,18 @@ def plotResults(DataSet, Save="",CutVar=[]):
                         projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
                     elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
                         projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)#check binning
-                    if "xyz" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "alpha" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "signed1Pt" in o.GetName():#add ratio pos neg !
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "dcaXY" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "dcaZ" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "itsNCls" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "itsChi2NCl" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "itsHits" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0]])
-                    if "tpcNClsFindable" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "tpcNClsFound" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "tpcNClsShared" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "tpcNClsCrossedRows" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "tpcFractionSharedCls" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "tpcCrossedRowsOverFindableCls" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0]])
-                    if "tpcChi2NCl" in o.GetName():
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    if "Sigma1Pt" in o.GetName():
+                    elif "Sigma1Pt" in o.GetName():
                         if "TRD" in o.GetName():#write extra function in additional script
                             continue
                         else:
                             projectCorrelationsTo2D(o, [[1,0]])
+                    elif "tpcCrossedRowsOverFindableCls" in o.GetName():
+                        projectCorrelationsTo2D(o, [[2,0]])
+                    elif "itsHits" in o.GetName():
+                        projectCorrelationsTo2D(o, [[2,0]])
+
+                    else:
+                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
                 else:
                     print(o.GetName())
                     print("we miss something..")
@@ -110,11 +87,17 @@ def generate_cutVarArr(Type):
            "itsPattern0", "itsPattern1", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3"]
     if "selections" in Type:
         cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
-    if "vs" in Type:
-        cutVarArr.append("globalTrackWoPtEta")
-        elements = [n for n in All if (Type[1] in n)]#just for the first case...we can work on this..
+    if "vs" in str(Type):
+        print("yes")
+        if "standard" in str(Type[0]):
+            cutVarArr.append("globalTrackWoPtEta")
+        else:
+            cutVarArr.append(str(Type[0]))
+        elements = [n for n in All if (Type[2] in n)]#just for the first case...we can work on this..
         for element in elements:
             cutVarArr.append(element)
+    if "all" in Type:
+        return All
     else:
         elements = [n for n in All if (Type[0] in n)]#just for the first case...we can work on this..
         for element in elements:
@@ -137,13 +120,10 @@ def main():
     arr = generate_cutVarArr(args.CutVar)
 
     if args.Compare == "True":
-        #compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=args.CutVar, doRatios=True)
         compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True)
-
     else:
         for cut in arr:
-            #plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
             plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
             
-#./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "maxDcaZ1" --Save True
+#./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "vs" "maxDcaZ1" --Save True --Compare True
 main()

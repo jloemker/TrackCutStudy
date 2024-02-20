@@ -2,6 +2,7 @@
 
 mergeRuns=merge_runs.txt
 touch $mergeRuns
+rm $mergeRuns
 
 IFS=, read -a runs < runs.txt # cp the running list from hyperloop into runs.txt
 IFS=, read -a hyperpath < output.txt # cp the output list from hyperloop into output.txt
@@ -21,7 +22,7 @@ do
   do
     [[ “$line” =~ ^#.*$ ]] && continue
     mkdir -p $i/$j/
-    alien_cp $line file:$i/$j/AO2D.root
+    #alien_cp $line file:$i/$j/AO2D.root
     ((j+=1))
     echo $j/AO2D.root >> $merge
   done < $input

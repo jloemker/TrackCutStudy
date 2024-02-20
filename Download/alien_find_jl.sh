@@ -31,4 +31,3 @@ else
   echo "Usage: `basename $0` fileList"
   exit 5
 fi
-

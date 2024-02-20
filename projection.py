@@ -24,8 +24,6 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
             if logy == True:
                 can.SetLogy()
         else:
-            #histo.SetTitle(dataSet+" "+histo.GetTitle())
-            #histo.SetName(dataSet+" "+histo.GetName())
             output.append(histo)
     if dim_min != None:
         for axis in range(dim_min,dim):

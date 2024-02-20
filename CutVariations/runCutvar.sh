@@ -40,7 +40,8 @@ cuts=(
 source configs/generateConfig.sh "${cuts[@]}"
 
 mkdir -p "${Results}/CutVariations/" #creates subdirectory for CutVariation in Results section where you keep your data
-echo "${Results}AnalysisResults_trees_test.root" > list.txt # generates the list for the config file
+#echo "${Results}AnalysisResults_trees_test.root" > list.txt # generates the list for the config file
+echo "${Results}/AO2D_test.root" > list.txt # generates the list for the config file
 
 Cfg="--configuration json://configs/generated_config.json -b" # this is produced with generateConfig.sh
 

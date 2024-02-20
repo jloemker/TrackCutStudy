@@ -45,15 +45,17 @@ def ratioDataSets(histos=[]):
                 h.DrawCopy("E")
             else:
                 h.DrawCopy("SAME")
-        legR = createLegend(objects=histos, x=[0, 1], y=[0.87,0.93], columns=len(histos))
-        canR.cd()
-        legR.Draw("SAME")
+    legR = createLegend(objects=histos, x=[0, 1], y=[0.87,0.93], columns=len(histos))
+    canR.cd()
+    legR.Draw("SAME")
+    if histos[0].GetYaxis().GetBinCenter(0) > 0:
         canR.SetLogy()
     print("Compared ratios")
 
 def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
     files = {}
-    histos = []
+    histos = []# try histos[DataSets] = [] ..or histos[dirName]
+    #histos[DataSets][Directories] = []
     for dataSet in DataSets:#make first one the base line for ratios and saving
         if CutVars != None:
             for cutVar in CutVars:
@@ -210,6 +212,8 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
                                 h.SetTitle(dataSet+" "+h.GetTitle())
                                 histos.append(h)
                         else:
+                            print(o.GetTitle())
+                            input("wait")
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
                             profile2DProjection(o, [[0,2]], output=tmp, dataSet=dataSet)
                             for h in tmp:
@@ -221,18 +225,16 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
             if not dirName in h.GetName():
                 continue
             name = h.GetTitle().split(" ",1)
-            if "tgl" in name[1]:
-                name = name[1].split(" ",1)
             if (f"Compare_{name[1]}") in canvas_list:
                 continue
             else:
                 can = canvas("Compare_"+name[1])
                 if "tgl" in name[1]:
-                    histo = [h for h in histos if (h.GetTitle().split(" ", 2)[2] == name[1])]
+                    histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
                 else:
                     histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
                 if len(histo) < 2:
-                    print("less than 2 histos to compare... ? ", name[1])
+                    print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
                     input("wait")
                 col = [1,2,214,209,221]
                 can.cd()
@@ -242,9 +244,6 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
                     nEntries = h.Integral()
                     newName = h.GetName().split(" ",1)
                     newTitle = h.GetTitle().split(" ",1)
-                    if "tgl" in h.GetName():
-                        newName = h.GetName().split(" ",2)
-                        newTitle = newTitle[1].split(" ",1)
                     h.SetTitle(newTitle[1])
                     h.SetName(newName[0])#+": "+f"{nEntries}")
                     if abs(nEntries) > 0:
