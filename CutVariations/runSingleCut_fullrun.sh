@@ -46,13 +46,10 @@ cuts=(
     "minTPCNClsFound=3"
 )
 
-${Base}/./generateConfig.sh "${cuts[@]}"
-
 cp ${Base}/generated_config.json .
 
 echo "${Results}/AO2D.root" > list.txt # generates the list for the config file
 cat list.txt
-Cfg="--configuration json://generated_config.json -b" # this is produced with generateConfig.sh
 
 function runSpec {
         o2-analysis-je-track-jet-qa --configuration json://generated_config.json -b --workflow-suffix $1
