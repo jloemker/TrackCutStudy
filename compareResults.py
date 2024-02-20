@@ -8,7 +8,7 @@ import ROOT
 from ROOT import TFile
 import numpy as np
 import re
-from common import Directories, get_directories, canvas, canvas_list, clear_canvaslist, saveCanvasList, createLegend
+from common import Directories, get_directories, canvas, canvas_list, clear_canvaslist, saveCanvasList, createLegend, make_color_range
 from projection import projectEventProp, projectCorrelationsTo1D, profile2DProjection
 
 def ratioDataSets(histos=[]):
@@ -52,14 +52,17 @@ def ratioDataSets(histos=[]):
         canR.SetLogy()
     print("Compared ratios")
 
-def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
+def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None):
     files = {}
     histos = []# try histos[DataSets] = [] ..or histos[dirName]
     #histos[DataSets][Directories] = []
     for dataSet in DataSets:#make first one the base line for ratios and saving
         if CutVars != None:
             for cutVar in CutVars:
-                f = TFile.Open(f"Results/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+                if Grid != None:
+                    f = TFile.Open(f"/dcache/alice/jlomker/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+                else:
+                    f = TFile.Open(f"Results/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
                 if Directories == []:
                     get_directories(f, f"track-jet-qa{cutVar}")
                 files[dataSet] = f
@@ -236,10 +239,14 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
                 if len(histo) < 2:
                     print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
                     input("wait")
-                col = [1,2,214,209,221]
+                colors = make_color_range(len(histo))
+                print(col)
+                #col = colors.pop(0)
+                # col = [1,2,214,209,221]
                 can.cd()
                 c = -1
                 for h in histo:
+                    col = colors.pop(0)
                     c +=1
                     nEntries = h.Integral()
                     newName = h.GetName().split(" ",1)
@@ -249,8 +256,8 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None):
                     if abs(nEntries) > 0:
                         h.Scale(1/nEntries)
                         h.GetYaxis().SetTitle("scaled by (1/Intregral)")
-                    h.SetLineColor(col[c])
-                    h.SetMarkerColor(col[c])
+                    h.SetLineColor(col)
+                    h.SetMarkerColor(col)
                     h.SetMarkerStyle(23+c)
                     h.SetStats(0)
                     h.SetDirectory(0)

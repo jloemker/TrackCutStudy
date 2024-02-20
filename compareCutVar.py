@@ -18,7 +18,8 @@ from compareResults import compareDataSets
 def plotResults(DataSet, Save="",CutVar=[]):
     files = {}
     for cut in CutVar:#here some pretty plots
-        f = TFile.Open(f"Results/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
+       # f = TFile.Open(f"Results/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
+        f = TFile.Open(f"/dcache/alice/jlomker/LHC23_PbPb_pass1/544091/1/CutVariations/AnalysisResults_{cut}.root", "READ")
         if not f or not f.IsOpen():
             print("Did not get", f)
             return
@@ -26,9 +27,11 @@ def plotResults(DataSet, Save="",CutVar=[]):
             get_directories(f, f"track-jet-qa{cut}")
         files[cut] = f
         for dirName in  Directories:
+            print(dirName)
             dir = f.Get(f"track-jet-qa{cut}/"+dirName).GetListOfKeys()
             for obj in dir:
                 o = f.Get(f"track-jet-qa{cut}/"+dirName+"/"+obj.GetName())
+                print(o.GetName(), " ",o.GetTitle())
                 if not o:
                     print("Did not get", o, " as object ", obj)
                 elif "TH1" in o.ClassName():#Rejectionhisto in EventProp/rejectedCollId
@@ -42,31 +45,36 @@ def plotResults(DataSet, Save="",CutVar=[]):
                 elif "THnSparse" in o.ClassName():
                     if "collisionVtxZ" in o.GetName():
                         projectEventProp(o)
-                    elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                        continue
+                    if "MultCorrelations" in o.GetName() and dirName=="EventProp":
                         continue
                         projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]])#MultCorrelations_proj_4_3 (Potential memory leak).
                         input("wait")
-                    elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                    if "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
                         continue
                         projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
                         projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
-                    elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
+                    if "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
                         projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)#check binning
-                    elif "Sigma1Pt" in o.GetName():
+                        continue
+                    if "Sigma1Pt" in o.GetName():
                         if "TRD" in o.GetName():#write extra function in additional script
                             continue
                         else:
                             projectCorrelationsTo2D(o, [[1,0]])
-                    elif "tpcCrossedRowsOverFindableCls" in o.GetName():
+                            continue
+                    if "tpcCrossedRowsOverFindableCls" in o.GetName():
                         projectCorrelationsTo2D(o, [[2,0]])
-                    elif "itsHits" in o.GetName():
+                        continue
+                    if "itsHits" in o.GetName():
                         projectCorrelationsTo2D(o, [[2,0]])
-
+                        continue
                     else:
-                        projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                       projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                       continue
                 else:
                     print(o.GetName())
-                    print("we miss something..")
+                    print("we miss the (one above) something..")
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare_{DataSet}_CutVariations/2DTrackQa_{cut}.pdf", f"Compare_{DataSet}_CutVariations")  
             clear_canvaslist()
@@ -88,7 +96,6 @@ def generate_cutVarArr(Type):
     if "selections" in Type:
         cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
     if "vs" in str(Type):
-        print("yes")
         if "standard" in str(Type[0]):
             cutVarArr.append("globalTrackWoPtEta")
         else:
@@ -106,6 +113,7 @@ def generate_cutVarArr(Type):
 
 
 def main():
+    ROOT.gROOT.SetBatch(True) 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--CutVar", "-c", type=str,
                         default=["globalTrack", "maxDcaZ1","maxDcaZ3"], help="Activate 'CompareDataSets', or plots 2D QA AnalysisResults from cutvariations", nargs="+")
@@ -115,12 +123,14 @@ def main():
                         default=["False", "True"], help="If you set this flag, it will save the documents")
     parser.add_argument("--Compare", "-comp", type=str,
                         default=["False", "True"], help="If you set this flag, it will compare the cutvariations in 1D")
+    parser.add_argument("--BatchMode", "-b", type=str,
+                        default=None, help="we cannot use the graphic output on stbc and have a the results in dcache")
     args = parser.parse_args()
-
     arr = generate_cutVarArr(args.CutVar)
 
     if args.Compare == "True":
-        compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True)
+        print("comparison mode")
+        compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True, Grid=args.BatchMode)
     else:
         for cut in arr:
             plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])

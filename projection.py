@@ -6,6 +6,7 @@ Collection of functions -- i should really improve this; but for now it does the
 
 import ROOT
 from common import canvas, canvas_list
+ROOT.gROOT.SetBatch(True)
 
 def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, output=None, dataSet=None):
     if (dim == 0) or (dim == dim_min):
@@ -74,11 +75,13 @@ def projectCorrelationsTo2D(o, axis, output=None):
         if output != None:
             output.append(h)
         elif h.GetTitle() in canvas_list:
+            print(h.GetTitle(), " is already in canvas list")
             continue
         else:
             h.SetName(h.GetTitle())
             can = canvas(h.GetTitle())
             h.SetStats(0)
+            print("Drawing 2D")
             h.Draw("COLZ")
         #can.SetLogz()
 
