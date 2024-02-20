@@ -17,8 +17,10 @@ def ratioDataSets(histos=[]):
     else:
         canR = canvas("Ratio_"+histos[0].GetTitle())  
         c = -1
-        col = [1,2,214,209,221]
+        #col = [1,2,214,209,221]
+        colors = make_color_range(len(histos))
     for o in histos:
+        col = colors.pop(0)
         h = o.Clone()
         c +=1
         nEntries = h.Integral()
@@ -28,8 +30,8 @@ def ratioDataSets(histos=[]):
         if abs(nEntries) > 0:
             h.Scale(1/nEntries)
             h.GetYaxis().SetTitle("scaled by (1/Integral)")
-        h.SetLineColor(col[c])
-        h.SetMarkerColor(col[c])
+        h.SetLineColor(col)
+        h.SetMarkerColor(col)
         h.SetMarkerStyle(23+c)
         h.SetStats(0)
         h.SetDirectory(0)
@@ -225,6 +227,7 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None
                                 histos.append(h)
     for dirName in Directories:
         for h in histos:
+            histo = []
             if not dirName in h.GetName():
                 continue
             name = h.GetTitle().split(" ",1)
@@ -235,12 +238,13 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None
                 if "tgl" in name[1]:
                     histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
                 else:
+                    print(name[1], " name[1] ", name, " name ")
                     histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
                 if len(histo) < 2:
                     print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
                     input("wait")
                 colors = make_color_range(len(histo))
-                print(col)
+                print(colors)
                 #col = colors.pop(0)
                 # col = [1,2,214,209,221]
                 can.cd()
