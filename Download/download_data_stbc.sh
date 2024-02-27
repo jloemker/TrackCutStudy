@@ -1,6 +1,6 @@
 #!/bin/bash
 
-store="/dcache/alice/jlomker/LHC23_PbPb_pass1" # make this your path
+store="/dcache/alice/jlomker/LHC22_pass4_highIR_sampling" # make this your path
 
 mkdir -p $store
 
@@ -20,8 +20,8 @@ do
     [[ $line == *'#'* ]] && continue
     mkdir -p $store/$i/$j/
     alien_cp $line file:$store/$i/$j/AO2D.root
-    ((j+=1))
     echo "$j/AO2D.root" >> merge_per_run.txt # we don't need the $store and $i (runnumber) here because we enter them before we execute the merging script where we find one  merge_per_run.txt per runnumber
+    ((j+=1))
   done < files_per_run.txt
   echo "$i/AO2D.root" >> merge_runs.txt
   mv files_per_run.txt $store/$i/files_per_run.txt
@@ -41,7 +41,7 @@ done
 
 cd $store # go where we find the merge_runs.txt and do it !
 
-o2-aod-merger --input merge_runs.txt --skip-parent-files-list # and here we run the final merge - could be that this does not work, but the merger has the --help option too !
+o2-aod-merger --input merge_runs.txt --skip-parent-files-list --skip-non-existing-files # and here we run the final merge - could be that this does not work, but the merger has the --help option too !
 mv AO2D.root AnalysisResults_trees.root # renaming into the _trees.root such that we only need to move this into the proper ../Results/LHC_Period/ 
 
 echo "all done and merged into AnalysisResults_trees.root ! (or merging did not work)" # if the merging into one AO2D doesn't work, then look at the ../CutVariations/runCatvar.sh and extent the list.txt
