@@ -15,7 +15,6 @@ mkdir -p ${Save}
 
 cp ${Base}/generated_config.json .
 cp ${Results}/merge_per_run.txt .
-cp ${Base}/runSpec .
 cat merge_per_run.txt
 
 echo "${Results}/0/AO2D.root" >> list.txt
@@ -33,7 +32,6 @@ echo $cut
 
 source /cvmfs/alice.cern.ch/etc/login.sh
 eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
-#./runSpec $cut
 o2-analysis-je-track-jet-qa --configuration json://generated_config.json -b --workflow-suffix $cut
 cp AnalysisResults.root ${Save}/AnalysisResults_$cut.root
 rm AnalysisResults.root
