@@ -1,12 +1,12 @@
 #!/bin/bash
 
-Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
+Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
 cp $Results/merge_runs.txt merge_runs.txt
 
 while IFS= read -r line
 do
-  echo "deleting file.. ${line}"
-  rm -rf "${Results}/${line}"
+  line="${line//'/AO2D.root'/}"
+  echo " '${line}' "
 done < merge_runs.txt
 
 rm -rf merge_runs.txt
