@@ -44,28 +44,28 @@ generate_standard_config() {
         "minTPCNClsFound": "0",
         "binsMultiplicity": {
             "values": [
-                "5000",
+                "10",
                 "0",
                 "5000"
             ]
         },
         "binsMultNTracksPV": {
             "values": [
-                "100",
+                "10",
                 "0",
                 "100"
             ]
         },
         "binsPercentile": {
             "values": [
-                "100",
+                "10",
                 "0",
                 "100"
             ]
         },
         "binsVtx": {
             "values": [
-                "200",
+                "40",
                 "-20",
                 "20"
             ]
@@ -79,7 +79,7 @@ generate_standard_config() {
         },
         "binsSigma1OverPt": {
             "values": [
-                "100",
+                "200",
                 "0",
                 "1"
             ]
@@ -93,21 +93,21 @@ generate_standard_config() {
         },
         "binsEta": {
             "values": [
-                "100",
+                "50",
                 "-1",
                 "1"
             ]
         },
         "binsTrackXY": {
             "values": [
-                "100",
+                "50",
                 "-0.5",
                 "0.5"
             ]
         },
         "binsTrackZ": {
             "values": [
-                "100",
+                "50",
                 "-11",
                 "11"
             ]
@@ -121,28 +121,28 @@ generate_standard_config() {
         },
         "binsSignedPt": {
             "values": [
-                "200",
+                "100",
                 "-8",
                 "8"
             ]
         },
         "binsDcaXY": {
             "values": [
-                "100",
+                "50",
                 "-4",
                 "4"
             ]
         },
         "binsDcaZ": {
             "values": [
-                "100",
+                "50",
                 "-6",
                 "6"
             ]
         },
         "binsLength": {
             "values": [
-                "200",
+                "50",
                 "0",
                 "1000"
             ]

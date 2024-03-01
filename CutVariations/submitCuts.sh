@@ -2,7 +2,7 @@
 
 export cut_var
 export runnumber
-cuts=(
+cut=(
     "maxChi2PerClusterITS=30"
     "maxChi2PerClusterITS=42"
     "maxChi2PerClusterTPC=2"
@@ -34,8 +34,12 @@ cuts=(
     "minTPCNClsFound=3"
 )
 
+cuts=(
+    "maxChi2PerClusterITS=30"
+)
+
 #All from Low IR ! You need to specify the path to the DataSet/Period in runCuts!
-runs=(
+oldruns=(
     "520259"
     "520294" 
     "520471"
@@ -57,28 +61,43 @@ runs=(
     "529066"
     "529067"
 )
+#long: 527799, 529038, 529039, 529043
+runs=(
+    "527799"
+)
+# ongoing (without subdir 523897)
+# ongoing with subdir 527799
 #some runs ended up in error on hyperloop and have no AO2D - eg. problem run 526689, ...
 echo "generate config file..."
 ./generateConfig.sh "${cuts[@]}"
 
 for runnumber in "${runs[@]}"; do
     echo "Runnumber $runnumber"
-    for cut in "${cuts[@]}"; do   
-        if [[ $cut == *'.'* ]]; then
-            tmp="${cut//'.'/_}"
-            cut_var="${tmp//'='/}"
-            echo "$cut_var"
-            qsub -q short -F "${cut_var} ${runnumber}" runCuts.sh
-        elif [[ $cut == *'true'* ]]; then
-            tmp="${cut//'true'/}"
-            cut_var="${tmp//'='/}"
-            echo "$cut_var"
-            qsub -q short -F "${cut_var} ${runnumber}" runCuts.sh
-        else
-            cut_var="${cut//'='/}"
-            echo "${cut_var}"
-            qsub -q short -F "${cut_var} ${runnumber}" runCuts.sh
-        fi
-    done
+    export Results="/dcache/alice/jlomker/LHC22_pass4_lowIR/${runnumber}"
+    cp ${Results}/merge_per_run.txt .
+    export subId
+    subId=0
+    while IFS= read -r line
+    do
+        for cut in "${cuts[@]}"; do   
+            if [[ $cut == *'.'* ]]; then
+                tmp="${cut//'.'/_}"
+                cut_var="${tmp//'='/}"
+                echo "$cut_var"
+                qsub -q short -F "${cut_var} ${runnumber} ${subId} ${Results}" runCuts.sh
+            elif [[ $cut == *'true'* ]]; then
+                tmp="${cut//'true'/}"
+                cut_var="${tmp//'='/}"
+                echo "$cut_var"
+                qsub -q short -F "${cut_var} ${runnumber} ${subId} ${Results}" runCuts.sh
+            else
+                cut_var="${cut//'='/}"
+                echo "${cut_var}"
+                qsub -q short -F "${cut_var} ${runnumber} ${subId} ${Results}" runCuts.sh
+            fi
+        done
+        echo "${subId}"
+        ((subId+=1))
+    done < merge_per_run.txt
 done
 echo "All submitted !"
