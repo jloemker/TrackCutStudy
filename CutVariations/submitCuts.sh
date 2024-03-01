@@ -2,7 +2,9 @@
 
 export cut_var
 export runnumber
-cut=(
+
+# specify the cutvariations you would like to perform
+cuts=(
     "maxChi2PerClusterITS=30"
     "maxChi2PerClusterITS=42"
     "maxChi2PerClusterTPC=2"
@@ -34,12 +36,8 @@ cut=(
     "minTPCNClsFound=3"
 )
 
-cuts=(
-    "maxChi2PerClusterITS=30"
-)
-
-#All from Low IR ! You need to specify the path to the DataSet/Period in runCuts!
-oldruns=(
+# specify the runs you want to analyse
+runs=(
     "520259"
     "520294" 
     "520471"
@@ -58,22 +56,15 @@ oldruns=(
     "529038"
     "529039"
     "529043"
-    "529066"
-    "529067"
 )
-#long: 527799, 529038, 529039, 529043
-runs=(
-    "527799"
-)
-# ongoing (without subdir 523897)
-# ongoing with subdir 527799
-#some runs ended up in error on hyperloop and have no AO2D - eg. problem run 526689, ...
-echo "generate config file..."
+# Error runs lowIR (removed from /dcache/): 526689, 529066, 529066
+
+echo "generating the config file according to your needs (cuts in submitCuts.sh )..."
 ./generateConfig.sh "${cuts[@]}"
 
 for runnumber in "${runs[@]}"; do
     echo "Runnumber $runnumber"
-    export Results="/dcache/alice/jlomker/LHC22_pass4_lowIR/${runnumber}"
+    export Results="/dcache/alice/jlomker/LHC22_pass4_lowIR/${runnumber}"  # specify your /dcache path
     cp ${Results}/merge_per_run.txt .
     export subId
     subId=0
