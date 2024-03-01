@@ -8,3 +8,5 @@ do
   echo "deleting file.. ${line}"
   rm -rf "${Results}/${line}"
 done < merge_runs.txt
+
+rm -rf merge_runs.txt
