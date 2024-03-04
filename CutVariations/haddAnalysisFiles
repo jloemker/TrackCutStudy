@@ -1,0 +1,64 @@
+#!/bin/bash
+
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
+
+#Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
+Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+
+cp $Results/merge_runs.txt merge_runs.txt
+HaddDir=/data/alice/jlomker/alice/TrackCutStudy/CutVariations/hadd_list
+mkdir -p $HaddDir
+
+cuts=(
+    "maxChi2PerClusterITS=30"
+)
+while IFS= read -r line
+do
+  line2="${line//'/AO2D.root'/}"
+  cp $Results/${line2}/merge_per_run.txt .
+  subId=0  
+  while IFS= read -r line
+  do
+    for cut in "${cuts[@]}"; do
+        if [[ $cut == *'.'* ]]; then
+            tmp="${cut//'.'/_}"
+            cut_var="${tmp//'='/}"
+            echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.txt
+        elif [[ $cut == *'true'* ]]; then
+            tmp="${cut//'true'/}"
+            cut_var="${tmp//'='/}"
+            echo "${Results}/${line2}/CutVarations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.txt
+        else
+            cut_var="${cut//'='/}"
+            echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
+        fi
+        done
+      ((subId+=1))
+      echo $subId
+  done < merge_per_run.txt
+  rm -rf  merge_per_run.txt
+  for cut in "${cuts[@]}"; do
+      if [[ $cut == *'.'* ]]; then
+          tmp="${cut//'.'/_}"
+          cut_var="${tmp//'='/}"
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${line2}_${cut_var}.list
+      elif [[ $cut == *'true'* ]]; then
+          tmp="${cut//'true'/}"
+          cut_var="${tmp//'='/}"
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${line2}_${cut_var}.list
+      else
+          cut_var="${cut//'='/}"
+          echo "${cut_var}"
+          tr '\n' ' ' < hadd_this_${line2}_${cut_var}.txt > list.list
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${line2}_${cut_var}.list
+      fi
+      cp "AnalysisResults_${cut_var}.root" "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
+  done
+done < merge_runs.txt
+
+cp hadd_*.txt ${HaddDir}/*.txt
+rm -rf hadd_*.txt
+rm -rf merge_runs.txt
+
+
