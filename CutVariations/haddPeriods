@@ -1,0 +1,78 @@
+#!/bin/bash
+
+source /cvmfs/alice.cern.ch/etc/login.sh
+eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
+
+#Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
+Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+
+cp $Results/*.txt .			# cp all available merge files (for each period)
+echo ${Results}/*.txt > periodList.txt  # write all periods upto a file for iteration (at the bottom of this file)
+
+
+cuts=(
+    "maxChi2PerClusterITS=30"
+)
+
+
+mergePeriod(){
+
+mergeFile=$1
+
+while IFS= read -r line
+do
+  line2="${line//'/AO2D.root'/}" # get runnumbers 
+  Period="${mergeFile//'.txt'/}" # get period name
+  echo "Period: ${Period}"
+  mkdir -p "${Results}/CutVariations/${Period}" # make save path for hadded files
+  while IFS= read -r line
+  do
+    for cut in "${cuts[@]}"; do
+        if [[ $cut == *'.'* ]]; then
+            tmp="${cut//'.'/_}"
+            cut_var="${tmp//'='/}"
+            echo "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+        elif [[ $cut == *'true'* ]]; then
+            tmp="${cut//'true'/}"
+            cut_var="${tmp//'='/}"
+            echo "${Results}/${line2}/CutVarations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+        else
+            cut_var="${cut//'='/}"
+            echo "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+        fi
+        done
+  done < $mergeFile
+  for cut in "${cuts[@]}"; do
+      if [[ $cut == *'.'* ]]; then
+          tmp="${cut//'.'/_}"
+          cut_var="${tmp//'='/}"
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${Period}_${cut_var}.list
+      elif [[ $cut == *'true'* ]]; then
+          tmp="${cut//'true'/}"
+          cut_var="${tmp//'='/}"
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${Period}_${cut_var}.list
+      else
+          cut_var="${cut//'='/}"
+          hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${Period}_${cut_var}.list
+      fi
+      cp "AnalysisResults_${cut_var}.root" "${Results}/CutVariations/${Period}/AnalysisResults_${cut_var}.root"
+  done
+done < $mergeFile
+
+rm -rf hadd_*.list
+
+}
+
+
+IFS=" " read -a periodPaths < periodList.txt # here we loop oer the periods and call the function from above 
+
+echo ${periodPaths[@]}
+for i in "${periodPaths[@]}"
+do
+  tmp="${i//${Results}'/'/}"
+  mergePeriod $tmp
+  echo "mergedPeriod: $tmp" >> periods.txt
+done < periodList.txt
+
+rm -rf *.txt
+
