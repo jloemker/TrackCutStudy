@@ -4,7 +4,8 @@ source /cvmfs/alice.cern.ch/etc/login.sh
 eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
 
 #Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
-Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+#Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
 
 cp $Results/merge_runs.txt merge_runs.txt
 HaddDir=/data/alice/jlomker/alice/TrackCutStudy/CutVariations/hadd_list
@@ -24,11 +25,11 @@ do
         if [[ $cut == *'.'* ]]; then
             tmp="${cut//'.'/_}"
             cut_var="${tmp//'='/}"
-            echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.txt
+            echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
         elif [[ $cut == *'true'* ]]; then
             tmp="${cut//'true'/}"
             cut_var="${tmp//'='/}"
-            echo "${Results}/${line2}/CutVarations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.txt
+            echo "${Results}/${line2}/CutVarations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
         else
             cut_var="${cut//'='/}"
             echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
@@ -50,15 +51,14 @@ do
       else
           cut_var="${cut//'='/}"
           echo "${cut_var}"
-          tr '\n' ' ' < hadd_this_${line2}_${cut_var}.txt > list.list
           hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${line2}_${cut_var}.list
       fi
-      cp "AnalysisResults_${cut_var}.root" "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
+      #cp "AnalysisResults_${cut_var}.root" "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
   done
 done < merge_runs.txt
 
-cp hadd_*.txt ${HaddDir}/*.txt
-rm -rf hadd_*.txt
+cp hadd_*.list ${HaddDir}/*.list
+rm -rf hadd_*.list
 rm -rf merge_runs.txt
 
 
