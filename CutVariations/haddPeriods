@@ -72,6 +72,11 @@ do
         fi
         done
   done < $mergeFile
+
+while IFS= read -r line
+do
+  export Period="${mergeFile//'.txt'/}" # get period name
+  echo "Period: ${Period}"
   for cut in "${cuts[@]}"; do
       if [[ $cut == *'.'* ]]; then
           tmp="${cut//'.'/_}"
@@ -86,9 +91,10 @@ do
           hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${Period}_${cut_var}.list
       fi
       cp "AnalysisResults_${cut_var}.root" "${Results}/CutVariations/${Period}/AnalysisResults_${cut_var}.root"
+      cp hadd_this_${Period}_${cut_var}.list ${Results}/CutVariations/${Period}/
   done
 done < $mergeFile
-
+cp hadd_*.list ${Results}/CutVariations/${Period}/
 rm -rf hadd_*.list
 
 }
