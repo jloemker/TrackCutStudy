@@ -4,7 +4,8 @@ source /cvmfs/alice.cern.ch/etc/login.sh
 eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
 
 #Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
-Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+#Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
+Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
 
 cp $Results/*.txt .			# cp all available merge files (for each period)
 echo ${Results}/*.txt > periodList.txt  # write all periods upto a file for iteration (at the bottom of this file)
@@ -45,28 +46,29 @@ cuts=(
 
 mergePeriod(){
 
-mergeFile=$1
+export mergeFile=$1
 
 while IFS= read -r line
 do
-  line2="${line//'/AO2D.root'/}" # get runnumbers 
-  Period="${mergeFile//'.txt'/}" # get period name
+  export Period="${mergeFile//'.txt'/}" # get period name
   echo "Period: ${Period}"
   mkdir -p "${Results}/CutVariations/${Period}" # make save path for hadded files
   while IFS= read -r line
   do
+    Runnumber="${line//'/AO2D.root'/}" # get runnumbers 
+    echo $Runnumber
     for cut in "${cuts[@]}"; do
         if [[ $cut == *'.'* ]]; then
             tmp="${cut//'.'/_}"
             cut_var="${tmp//'='/}"
-            echo "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+            echo "${Results}/${Runnumber}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
         elif [[ $cut == *'true'* ]]; then
             tmp="${cut//'true'/}"
             cut_var="${tmp//'='/}"
-            echo "${Results}/${line2}/CutVarations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+            echo "${Results}/${Runnumber}/CutVarations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
         else
             cut_var="${cut//'='/}"
-            echo "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+            echo "${Results}/${Runnumber}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
         fi
         done
   done < $mergeFile
@@ -98,7 +100,8 @@ echo ${periodPaths[@]}
 for i in "${periodPaths[@]}"
 do
   tmp="${i//${Results}'/'/}"
-  mergePeriod $tmp
+  echo "tmp: ${tmp}"
+  mergePeriod ${tmp}
   echo "mergedPeriod: $tmp" >> periods.txt
 done < periodList.txt
 
