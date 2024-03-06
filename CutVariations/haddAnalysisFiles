@@ -81,6 +81,7 @@ do
       fi
       cp "AnalysisResults_${cut_var}.root" "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
   done
+  rm -rf *.root
 done < merge_runs.txt
 
 rm -rf hadd_*.list
