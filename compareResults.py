@@ -3,13 +3,34 @@
 """
 Comparison script for ratios of QA processing - trackJetQa i.e. resolution at high pT.
 """
-
 import ROOT
-from ROOT import TFile
+from ROOT import TFile, TMath
 import numpy as np
 import re
 from common import Directories, get_directories, canvas, canvas_list, clear_canvaslist, saveCanvasList, createLegend, make_color_range
 from projection import projectEventProp, projectCorrelationsTo1D, profile2DProjection
+
+def propagateFullyCorrelatedError(hres, h0):
+     res = hres.Clone()
+     for i in range(0, res.GetNbinsX()):
+         if ((abs(res.GetBinContent(i)) > 0) and (abs(h0.GetBinContent(i)) > 0)) :
+             val = res.GetBinContent(i)/h0.GetBinContent(i)
+             if (abs(res.GetBinError(i))>0 and abs(h0.GetBinError(i)) > 0):
+                 term1 = pow(res.GetBinError(i) / res.GetBinContent(i), 2) 
+                 term2 = pow(h0.GetBinError(i) / h0.GetBinContent(i), 2)
+                 term3 = pow(res.GetBinError(i),2)/(res.GetBinContent(i)*h0.GetBinContent(i))
+                 print("term1 ", term1, "term2 ", term2, "term3 ", term3)
+                 err_avg = (res.GetBinContent(i)/h0.GetBinContent(i))*pow(abs(term1 + term2 - 2*term3), 0.5) 
+             #err_low = (res.GetBinContent(i)/h0.GetBinContent(i))* ((res.GetBinContent(i) - res.GetBinError(i)) / (h0.GetBinContent(i) - h0.GetBinError(i))) 
+             else:
+                 err_avg = 0
+             print("Bin Nr.: ", i, " bin value:", res.GetBinCenter(i), " ratio content: ", val, " err_avg:", err_avg)
+         else:
+             val = 0
+             err_avg = 0
+         res.SetBinContent(i,val)
+         res.SetBinError(i, err_avg)
+     return res
 
 def ratioDataSets(histos=[]):
     if (f"Ratio_{histos[0].GetTitle()}") in canvas_list:
@@ -37,16 +58,17 @@ def ratioDataSets(histos=[]):
         h.SetDirectory(0)
         canR.cd()
         if c == 0:
-            h.Sumw2()
+            #h.Sumw2()
             continue
         else:
             if histos[0] != 0:
-                h.Divide(histos[0])
-                h.GetYaxis().SetTitle("(DataSet/"+histos[0].GetName()+")")
+                res = propagateFullyCorrelatedError(h, histos[0])
+               # res.Divide(histos[0])
+                res.GetYaxis().SetTitle("(DataSet/"+histos[0].GetName()+")")
             if c == 1:
-                h.DrawCopy("E")
+                res.DrawCopy("E")
             else:
-                h.DrawCopy("SAME")
+                res.DrawCopy("SAME")
     legR = createLegend(objects=histos, x=[0, 1], y=[0.87,0.93], columns=len(histos))
     canR.cd()
     legR.Draw("SAME")
@@ -54,17 +76,18 @@ def ratioDataSets(histos=[]):
         canR.SetLogy()
     print("Compared ratios")
 
-def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None):
+def compareDataSets(Path, DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None):
     files = {}
     histos = []# try histos[DataSets] = [] ..or histos[dirName]
     #histos[DataSets][Directories] = []
     for dataSet in DataSets:#make first one the base line for ratios and saving
         if CutVars != None:
             for cutVar in CutVars:
-                if Grid != None:
-                    f = TFile.Open(f"/dcache/alice/jlomker/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
-                else:
-                    f = TFile.Open(f"Results/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+               # if Grid != None:
+                f = TFile.Open(f"{Path}/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+                #f = TFile.Open(f"{Path}/CutVariations/{dataSet}/AnalysisResults_{cutVar}.root", "READ")
+                #elif Grid==None:
+                 #   f = TFile.Open(f"Results/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
                 if Directories == []:
                     get_directories(f, f"track-jet-qa{cutVar}")
                 files[dataSet] = f
@@ -244,7 +267,6 @@ def compareDataSets(DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None
                     print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
                     input("wait")
                 colors = make_color_range(len(histo))
-                print(colors)
                 #col = colors.pop(0)
                 # col = [1,2,214,209,221]
                 can.cd()

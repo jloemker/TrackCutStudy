@@ -19,7 +19,8 @@ def plotResults(Path, DataSet, Save="",CutVar=[]):
     global canvas_list
     for cut in CutVar:#here some pretty plots
        # f = TFile.Open(f"Results/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
-        f = TFile.Open(f"{Path}/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
+       # f = TFile.Open(f"{Path}/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
+        f = TFile.Open(f"{Path}/CutVariations/{DataSet}/AnalysisResults_{cut}.root", "READ") #/dcache/alice/jlomker/LHC22_pass4_lowIR/CutVariations/merge_LHC22q_apass4
         if not f or not f.IsOpen():
             print("Did not get", f)
             return
@@ -144,6 +145,11 @@ def main():
             #saveCanvasList(common.canvas_list, f"Save/Compare_{DataSet}_CutVariations/2DTrackQa_{cut}.pdf", f"Compare_{DataSet}_CutVariations")
             #clear_canvaslist()
             #canvas_list = {}   
+#need some more tuning for comparisons per period/run... tuesday
 #./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "vs" "maxDcaZ1" --Save True --Compare True
 #./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 528997 --CutVar "all" --Save True --Compare False
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet merge_LHC22q_apass4 --CutVar "all" --Save True --Compare False
+
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 529038 --CutVar "selections" --Save True --Compare True --BatchMode True
+#../compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 529038 --CutVar "selections" --Save True --Compare True --BatchMode True
 main()
