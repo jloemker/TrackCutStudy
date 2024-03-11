@@ -14,12 +14,12 @@ from projection import projectEventProp, projectCorrelationsTo1D, profile2DProje
 from compareResults import compareDataSets
 
 #def compareCutvariation(DataSet, Save="",CutVar=[]): one could add some more cut ralated plots.. but for me its enough rn
-
-def plotResults(DataSet, Save="",CutVar=[]):
+def plotResults(Path, DataSet, Save="",CutVar=[]):
     files = {}
+    global canvas_list
     for cut in CutVar:#here some pretty plots
        # f = TFile.Open(f"Results/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
-        f = TFile.Open(f"/dcache/alice/jlomker/LHC23_PbPb_pass1/544091/1/CutVariations/AnalysisResults_{cut}.root", "READ")
+        f = TFile.Open(f"{Path}/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
         if not f or not f.IsOpen():
             print("Did not get", f)
             return
@@ -46,27 +46,27 @@ def plotResults(DataSet, Save="",CutVar=[]):
                     if "collisionVtxZ" in o.GetName():
                         projectEventProp(o)
                         continue
-                    if "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                    elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
                         continue
                         projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]])#MultCorrelations_proj_4_3 (Potential memory leak).
                         input("wait")
-                    if "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                    elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
                         continue
                         projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
                         projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
-                    if "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
+                    elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
                         projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)#check binning
                         continue
-                    if "Sigma1Pt" in o.GetName():
+                    elif "Sigma1Pt" in o.GetName():
                         if "TRD" in o.GetName():#write extra function in additional script
                             continue
                         else:
                             projectCorrelationsTo2D(o, [[1,0]])
                             continue
-                    if "tpcCrossedRowsOverFindableCls" in o.GetName():
+                    elif "tpcCrossedRowsOverFindableCls" in o.GetName():
                         projectCorrelationsTo2D(o, [[2,0]])
                         continue
-                    if "itsHits" in o.GetName():
+                    elif "itsHits" in o.GetName():
                         projectCorrelationsTo2D(o, [[2,0]])
                         continue
                     else:
@@ -78,6 +78,7 @@ def plotResults(DataSet, Save="",CutVar=[]):
         if Save=="True":
             saveCanvasList(canvas_list, f"Save/Compare_{DataSet}_CutVariations/2DTrackQa_{cut}.pdf", f"Compare_{DataSet}_CutVariations")  
             clear_canvaslist()
+            #canvas_list = {}
         else:
             print("we don't save this ...")
             clear_canvaslist()
@@ -91,8 +92,8 @@ def generate_cutVarArr(Type):
            "minNCrossedRowsOverFindableClustersTPC0_6", "minNCrossedRowsOverFindableClustersTPC0_7",
              "minNCrossedRowsOverFindableClustersTPC0_9", "minNCrossedRowsOverFindableClustersTPC1_0",
            "minNCrossedRowsTPC110", "minNCrossedRowsTPC60", "minNCrossedRowsTPC80",
-           "globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack",
-           "itsPattern0", "itsPattern1", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3"]
+           "itsPattern0", "itsPattern1", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3",
+           "globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
     if "selections" in Type:
         cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
     if "vs" in str(Type):
@@ -118,6 +119,8 @@ def main():
     parser.add_argument("--CutVar", "-c", type=str,
                         default=["globalTrack", "maxDcaZ1","maxDcaZ3"], help="Activate 'CompareDataSets', or plots 2D QA AnalysisResults from cutvariations", nargs="+")
     parser.add_argument("--DataSet", "-d", type=str,
+                        default="", help="Name of dataset")
+    parser.add_argument("--Path", "-p", type=str,
                         default="", help="Path and File input")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
@@ -130,10 +133,17 @@ def main():
 
     if args.Compare == "True":
         print("comparison mode")
-        compareDataSets(DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True, Grid=args.BatchMode)
+        compareDataSets(Path=args.Path, DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True, Grid=args.BatchMode)
     else:
         for cut in arr:
-            plotResults(DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
-            
+            #global canvas_list
+            print(cut, " ", [cut])
+            plotResults(Path=args.Path, DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
+            #DataSet=args.DataSet
+            #input("wait")
+            #saveCanvasList(common.canvas_list, f"Save/Compare_{DataSet}_CutVariations/2DTrackQa_{cut}.pdf", f"Compare_{DataSet}_CutVariations")
+            #clear_canvaslist()
+            #canvas_list = {}   
 #./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "vs" "maxDcaZ1" --Save True --Compare True
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 528997 --CutVar "all" --Save True --Compare False
 main()

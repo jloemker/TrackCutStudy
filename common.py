@@ -14,7 +14,7 @@ def clear_canvaslist():
     for i in l:
         canvas_list[i].Clear()
         del canvas_list[i]
-    canvas_list = {}
+   # canvas_list = {}
 
 def canvas(n, x=800, y=800,
            gridx=False, gridy=False,
@@ -115,6 +115,7 @@ def make_color_range(ncolors, simple=False):
     return [int(i) for i in colors]
 
 def get_directories(file, keyDir):
+    print("Get Keys", keyDir)
     for key in file.Get(keyDir).GetListOfKeys():
         if key.GetTitle() != None:
             Directories.append(key.GetTitle())
