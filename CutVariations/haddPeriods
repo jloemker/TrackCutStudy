@@ -62,7 +62,7 @@ do
       elif [[ $cut == *'true'* ]]; then
           tmp="${cut//'true'/}"
           cut_var="${tmp//'='/}"
-          echo "${Results}/${Runnumber}/CutVarations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
+          echo "${Results}/${Runnumber}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
       else
           cut_var="${cut//'='/}"
           echo "${Results}/${Runnumber}/CutVariations/AnalysisResults_${cut_var}.root" >> hadd_this_${Period}_${cut_var}.list
@@ -83,6 +83,7 @@ for cut in "${cuts[@]}"; do
         cut_var="${cut//'='/}"
         hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${Period}_${cut_var}.list
     fi
+    rm -rf "${Results}/CutVariations/${Period}/AnalysisResults_${cut_var}.root"
     cp "AnalysisResults_${cut_var}.root" "${Results}/CutVariations/${Period}/AnalysisResults_${cut_var}.root"
     cp hadd_this_${Period}_${cut_var}.list ${Results}/CutVariations/${Period}/
     rm -rf "AnalysisResults_${cut_var}.root"

@@ -10,35 +10,9 @@ Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
 cp $Results/merge_runs.txt merge_runs.txt
 
 cuts=(
-    "maxChi2PerClusterITS=30"
-    "maxChi2PerClusterITS=42"
-    "maxChi2PerClusterTPC=2"
-    "maxChi2PerClusterTPC=3"
-    "maxChi2PerClusterTPC=5"
-    "maxChi2PerClusterTPC=6"
-    "maxDcaZ=1"
-    "maxDcaZ=3"
-    "maxDcaXY=0.5"
-    "maxDcaXY=1"
-    "maxDcaXY=1.5"
-    "maxDcaXY=2.5"
-    "maxDcaXY=3"
-    "minNCrossedRowsOverFindableClustersTPC=0.6"
-    "minNCrossedRowsOverFindableClustersTPC=0.7"
-    "minNCrossedRowsOverFindableClustersTPC=0.9"
-    "minNCrossedRowsOverFindableClustersTPC=1.0"
-    "minNCrossedRowsTPC=110"
-    "minNCrossedRowsTPC=60"
-    "minNCrossedRowsTPC=80"
     "globalTrackWoPtEta=true"
     "globalTrackWoDCA=true"
     "globalTrack=true"
-    "itsPattern=0"
-    "itsPattern=1"
-    "itsPattern=3"
-    "minTPCNClsFound=1"
-    "minTPCNClsFound=2"
-    "minTPCNClsFound=3"
 )
 while IFS= read -r line
 do
@@ -55,7 +29,7 @@ do
         elif [[ $cut == *'true'* ]]; then
             tmp="${cut//'true'/}"
             cut_var="${tmp//'='/}"
-            echo "${Results}/${line2}/CutVarations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
+            echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
         else
             cut_var="${cut//'='/}"
             echo "${Results}/${line2}/CutVariations/${subId}/AnalysisResults_${cut_var}.root" >> hadd_this_${line2}_${cut_var}.list
@@ -79,12 +53,13 @@ do
           echo "${cut_var}"
           hadd -k "AnalysisResults_${cut_var}.root" @hadd_this_${line2}_${cut_var}.list
       fi
+      rm -rf "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
       cp "AnalysisResults_${cut_var}.root" "${Results}/${line2}/CutVariations/AnalysisResults_${cut_var}.root"
   done
   rm -rf *.root
 done < merge_runs.txt
 
-rm -rf hadd_*.list
+#rm -rf hadd_*.list
 rm -rf merge_runs.txt
 
 
