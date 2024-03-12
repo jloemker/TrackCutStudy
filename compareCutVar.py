@@ -17,10 +17,11 @@ def plotResults(Path, DataSet, RunNumber, Save="",CutVar=[]):
     files = {}
     global canvas_list
     for cut in CutVar:#here some pretty plots
+        if (DataSet != None):
+            f = TFile.Open(f"{Path}/CutVariations/{DataSet}/AnalysisResults_{cut}.root", "READ")
         if (RunNumber != None):
             f = TFile.Open(f"{Path}/{RunNumber}/CutVariations/AnalysisResults_{cut}.root", "READ")
-        elif (DataSet != None):
-            f = TFile.Open(f"{Path}/CutVariations/{DataSet}/AnalysisResults_{cut}.root", "READ")
+            DataSet = RunNumber
         if not f or not f.IsOpen():
             print("Did not get", f)
             return
