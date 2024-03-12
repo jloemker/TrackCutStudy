@@ -13,14 +13,14 @@ from common import Directories, get_directories, canvas, canvas_list, clear_canv
 from projection import projectEventProp, projectCorrelationsTo1D, profile2DProjection, projectCorrelationsTo2D, projectEtaPhiInPt
 from compareResults import compareDataSets
 
-#def compareCutvariation(DataSet, Save="",CutVar=[]): one could add some more cut ralated plots.. but for me its enough rn
-def plotResults(Path, DataSet, Save="",CutVar=[]):
+def plotResults(Path, DataSet, RunNumber, Save="",CutVar=[]):
     files = {}
     global canvas_list
     for cut in CutVar:#here some pretty plots
-       # f = TFile.Open(f"Results/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
-       # f = TFile.Open(f"{Path}/{DataSet}/CutVariations/AnalysisResults_{cut}.root", "READ")
-        f = TFile.Open(f"{Path}/CutVariations/{DataSet}/AnalysisResults_{cut}.root", "READ") #/dcache/alice/jlomker/LHC22_pass4_lowIR/CutVariations/merge_LHC22q_apass4
+        if (RunNumber != None):
+            f = TFile.Open(f"{Path}/{RunNumber}/CutVariations/AnalysisResults_{cut}.root", "READ")
+        elif (DataSet != None):
+            f = TFile.Open(f"{Path}/CutVariations/{DataSet}/AnalysisResults_{cut}.root", "READ")
         if not f or not f.IsOpen():
             print("Did not get", f)
             return
@@ -108,7 +108,7 @@ def generate_cutVarArr(Type):
     if "all" in Type:
         return All
     else:
-        elements = [n for n in All if (Type[0] in n)]#just for the first case...we can work on this..
+        elements = [n for n in All if (Type[0] in n)]
         for element in elements:
             cutVarArr.append(element)
     return cutVarArr
@@ -120,36 +120,28 @@ def main():
     parser.add_argument("--CutVar", "-c", type=str,
                         default=["globalTrack", "maxDcaZ1","maxDcaZ3"], help="Activate 'CompareDataSets', or plots 2D QA AnalysisResults from cutvariations", nargs="+")
     parser.add_argument("--DataSet", "-d", type=str,
-                        default="", help="Name of dataset")
+                        default=None, help="Name of dataset")
+    parser.add_argument("--RunNumber", "-r", type=str,
+                        default=None, help="Runnumber")
     parser.add_argument("--Path", "-p", type=str,
                         default="", help="Path and File input")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
     parser.add_argument("--Compare", "-comp", type=str,
                         default=["False", "True"], help="If you set this flag, it will compare the cutvariations in 1D")
-    parser.add_argument("--BatchMode", "-b", type=str,
-                        default=None, help="we cannot use the graphic output on stbc and have a the results in dcache")
     args = parser.parse_args()
     arr = generate_cutVarArr(args.CutVar)
 
     if args.Compare == "True":
         print("comparison mode")
-        compareDataSets(Path=args.Path, DataSets=[args.DataSet], Save=args.Save, CutVars=arr, doRatios=True, Grid=args.BatchMode)
+        compareDataSets(Path=args.Path, DataSets=[args.DataSet], RunNumber=args.RunNumber, Save=args.Save, CutVars=arr, doRatios=True)
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --RunNumber 529038 --CutVar "selections" --Save True --Compare True
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet merge_LHC22q_apass4 --CutVar "selections" --Save True --Compare True
     else:
         for cut in arr:
-            #global canvas_list
-            print(cut, " ", [cut])
-            plotResults(Path=args.Path, DataSet=args.DataSet, Save=args.Save, CutVar=[cut])
-            #DataSet=args.DataSet
-            #input("wait")
-            #saveCanvasList(common.canvas_list, f"Save/Compare_{DataSet}_CutVariations/2DTrackQa_{cut}.pdf", f"Compare_{DataSet}_CutVariations")
-            #clear_canvaslist()
-            #canvas_list = {}   
-#need some more tuning for comparisons per period/run... tuesday
-#./compareCutVar.py --DataSet LHC_Test1 --CutVar "globalTrack" "vs" "maxDcaZ1" --Save True --Compare True
-#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 528997 --CutVar "all" --Save True --Compare False
+            print(cut)
+            plotResults(Path=args.Path, DataSet=args.DataSet, RunNumber=args.RunNumber, Save=args.Save, CutVar=[cut])
+#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --RunNumber 529038 --CutVar "all" --Save True --Compare False     
 #./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet merge_LHC22q_apass4 --CutVar "all" --Save True --Compare False
 
-#./compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 529038 --CutVar "selections" --Save True --Compare True --BatchMode True
-#../compareCutVar.py --Path /dcache/alice/jlomker/LHC22_pass4_lowIR --DataSet 529038 --CutVar "selections" --Save True --Compare True --BatchMode True
 main()

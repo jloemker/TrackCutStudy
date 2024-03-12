@@ -21,7 +21,6 @@ def propagateFullyCorrelatedError(hres, h0):
                  term3 = pow(res.GetBinError(i),2)/(res.GetBinContent(i)*h0.GetBinContent(i))
                  print("term1 ", term1, "term2 ", term2, "term3 ", term3)
                  err_avg = (res.GetBinContent(i)/h0.GetBinContent(i))*pow(abs(term1 + term2 - 2*term3), 0.5) 
-             #err_low = (res.GetBinContent(i)/h0.GetBinContent(i))* ((res.GetBinContent(i) - res.GetBinError(i)) / (h0.GetBinContent(i) - h0.GetBinError(i))) 
              else:
                  err_avg = 0
              print("Bin Nr.: ", i, " bin value:", res.GetBinCenter(i), " ratio content: ", val, " err_avg:", err_avg)
@@ -58,12 +57,10 @@ def ratioDataSets(histos=[]):
         h.SetDirectory(0)
         canR.cd()
         if c == 0:
-            #h.Sumw2()
             continue
         else:
             if histos[0] != 0:
                 res = propagateFullyCorrelatedError(h, histos[0])
-               # res.Divide(histos[0])
                 res.GetYaxis().SetTitle("(DataSet/"+histos[0].GetName()+")")
             if c == 1:
                 res.DrawCopy("E")
@@ -76,18 +73,18 @@ def ratioDataSets(histos=[]):
         canR.SetLogy()
     print("Compared ratios")
 
-def compareDataSets(Path, DataSets={}, Save="", doRatios=None, CutVars=None, Grid=None):
+def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
     files = {}
-    histos = []# try histos[DataSets] = [] ..or histos[dirName]
-    #histos[DataSets][Directories] = []
+    histos = []
+    if (RunNumber != None):
+        DataSets[0] = RunNumber
     for dataSet in DataSets:#make first one the base line for ratios and saving
         if CutVars != None:
             for cutVar in CutVars:
-               # if Grid != None:
-                f = TFile.Open(f"{Path}/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
-                #f = TFile.Open(f"{Path}/CutVariations/{dataSet}/AnalysisResults_{cutVar}.root", "READ")
-                #elif Grid==None:
-                 #   f = TFile.Open(f"Results/{dataSet}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+                if (RunNumber != None):
+                    f = TFile.Open(f"{Path}/{RunNumber}/CutVariations/AnalysisResults_{cutVar}.root", "READ")
+                elif (RunNumber == None):
+                    f = TFile.Open(f"{Path}/CutVariations/{dataSet}/AnalysisResults_{cutVar}.root", "READ")
                 if Directories == []:
                     get_directories(f, f"track-jet-qa{cutVar}")
                 files[dataSet] = f
