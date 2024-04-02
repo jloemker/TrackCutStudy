@@ -1,0 +1,3 @@
+#!/bin/bash
+
+scp -rp jlomker@login.nikhef.nl:/data/alice/jlomker/alice/TrackCutStudy/Save/* .

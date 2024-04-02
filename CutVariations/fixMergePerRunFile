@@ -1,0 +1,16 @@
+#!/bin/bash
+
+Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
+cp $Results/merge_runs.txt merge_runs.txt
+
+while IFS= read -r line
+do
+  line="${line//'/AO2D.root'/}"
+  cp $Results/${line}/merge_per_run.txt .
+  rm -rf $Results/${line}/merge_per_run.txt
+  echo "0/AO2D.root" >> merge_per_run.txt
+  cp merge_per_run.txt $Results/${line}/merge_per_run.txt
+  rm -rf  merge_per_run.txt
+done < merge_runs.txt
+
+rm -rf merge_runs.txt

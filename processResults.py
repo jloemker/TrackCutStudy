@@ -5,731 +5,172 @@ Post processing script to handle the QA output from trackJetQa i.e. resolution a
 """
 
 import ROOT
-from ROOT import TFile, TLegend, TCanvas, TString, gPad, TH1, TColor, TLatex, gROOT, TH1F, TF1, TArrow, TH2F, TProfile, kAzure, kRainbow
-from os import path
-import os
-import configparser
+from ROOT import TFile
 import argparse
 import numpy
-import json
-import pandas
-import warnings
+import re
 
-ROOT.gStyle.SetPalette(kRainbow)
+from common import Directories, get_directories, canvas_list, canvas, clear_canvaslist, saveCanvasList
+from checkTRD import compareTRD
+from projection import projectEventProp, projectCorrelationsTo1D, projectCorrelationsTo2D, projectEtaPhiInPt, profile2DProjection
+from compareResults import compareDataSets
 
-warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
-
-Directories = ['Kine', 'TrackPar', 'ITS', 'TPC', 'EventProp', 'Mult', 'TrackEventPar', 'Centrality'] 
-canvas_list = {}
-nice_frames = {}
 legends = []
-#histo_list = {}
-
-
-#########################
-# Johanna: 
-#   - add user specification (need input from Alice)
-#   - add comparison step for cutvariations (need input from Alice)
-#
-#   - improve general comparison script - make axis pretty pipapo - correct the task on o2physics for the sigma1pt stuff; also add sigmaPt*pT to THnSparse !
-#   - add multBinning for projections of ThNSparses uncertainty in ranges (needed once multiplicites are calibrated)
-#########################
-
-def clear_canvaslist():
-    global canvas_list
-    l = list(canvas_list.keys())
-    for i in l:
-        canvas_list[i].Clear()
-        del canvas_list[i]
-    canvas_list = {}
-
-def canvas(n, x=800, y=800,
-           gridx=False, gridy=False,
-           tickx=True, ticky=True,
-           logx=False, logy=False, logz=True,
-           marginx=None):
-
-    global canvas_list
-    if canvas_list.setdefault(n, None) is not None:
-        can = canvas_list[n]
-    else:
-        can = TCanvas(f"canvas_{n}", n, x, y)
-        can.SetTickx(tickx)
-        can.SetTicky(ticky)
-        can.SetGridx(gridx)
-        can.SetGridy(gridy)
-        can.SetLogx(logx)
-        can.SetLogy(logy)
-        can.SetLogz(logz)
-        if x == 800:
-            can.SetLeftMargin(0.15)
-            can.SetRightMargin(0.13)
-        elif x > 1000:
-            can.SetLeftMargin(0.12)
-            can.SetRightMargin(0.08)
-        if marginx is not None:
-            can.SetLeftMargin(marginx[0])
-            can.SetRightMargin(marginx[1])
-        can.SetBottomMargin(0.15)
-        can.SetTopMargin(0.15)
-        canvas_list[n] = can
-    return can
-
-def createLegend(x=[0.7, 0.92], y=[0.8, 0.95], title="",
-                     columns=1, objects=None, linecolor=0):
-    global legends
-    leg = TLegend(x[0], y[0], x[1], y[1], title)
-    leg.SetLineColor(linecolor)
-    leg.SetNColumns(columns)
-    if objects is not None:
-        if type(objects) is list:
-            for o in objects:
-                leg.AddEntry(o, f"{o.GetName()}", "lp")
-        elif type(objects) is dict:
-            for o in objects:
-                leg.AddEntry(objects[o], "", "lp")
-    legends.append(leg)
-    return leg
-
-def saveCanvasList(canvas_list, save_name, dataSet=None):
-    n = 0
-    for i in canvas_list:
-        if dataSet:
-            print(dataSet)
-            save2 = f"Save/{dataSet}/"
-            os.makedirs(os.path.dirname(save2), exist_ok=True)
-        if n == 0:
-            canvas_list[i].SaveAs(f"{save_name}[")
-            #canvas_list[i].SaveAs(f"{save2}{dataSet}_{i}.png") #to save single images
-        canvas_list[i].SaveAs(save_name.replace(".png", f"_{i}.png"))
-        n += 1
-        if n == len(canvas_list):
-            canvas_list[i].SaveAs(f"{save_name}]")
-    clear_canvaslist()
-
-# TH2 histograms X profile
-def profileTH2X(histo, dirName):
-    h_profileX = histo.ProfileX()
-    h_profileX.SetTitle(histo.GetTitle() + " X Profile")
-    h_profileX.GetYaxis().SetTitle("mean value")
-    h_profileX.SetLineColor(kAzure+7)
-    h_profileX.SetLineWidth(3)
-    canX = canvas(dirName+" "+h_profileX.GetTitle())
-    h_profileX.Draw("E")
-
-def projectTH2(o, dirName):
-    hx = o.ProjectionX()
-    hx.SetLineColor(kAzure+7)
-    hx.SetLineWidth(3)
-    hx.SetStats(0)
-    hx.SetTitle("Eta vs Phi projection x")
-    canx = canvas(dirName+hx.GetTitle())
-    hx.GetYaxis().SetTitle("number of entires")
-    hx.Draw("E")
-    canx.SetLogx()
-    hy = o.ProjectionY()
-    hy.SetLineColor(kAzure+7)
-    hy.SetLineWidth(3)
-    hy.SetStats(0)
-    hy.SetTitle("Eta vs Phi projection y")
-    cany = canvas(dirName+hy.GetTitle())
-    hy.GetYaxis().SetTitle("number of entires")
-    hy.Draw("E")
-    cany.SetLogy()  
-
-def ProjectTHnSparse(hist, NumberOfAxis, dirName=None):
-    hlist = []
-    for axis in range(0,NumberOfAxis):
-        histo = hist.Projection(axis)
-        histo.SetTitle(hist.GetAxis(axis).GetTitle())
-        if "Centrality" in (hist.GetAxis(axis).GetTitle()):#should add this soon !
-            continue
-        for next_axis in range(0,NumberOfAxis):
-            if "Centrality" in (hist.GetAxis(next_axis).GetTitle()):
-                continue
-            if hist.GetAxis(axis).GetTitle() == hist.GetAxis(next_axis).GetTitle():
-                continue
-            h = hist.Projection(axis,next_axis)
-            h.SetTitle(h.GetXaxis().GetTitle()+"vs"+h.GetYaxis().GetTitle())
-            h.SetStats(0)
-            if dirName:
-                if dirName+" "+h.GetYaxis().GetTitle()+"vs"+h.GetXaxis().GetTitle() in canvas_list:
-                    continue
-                can = canvas(dirName+" "+h.GetTitle())
-                can.SetLogz()
-                h.SetTitle(" ")
-                h.Draw("COLZ")
-    if dirName==None:
-        return hlist
-
 
 def drawPlots(InputDir="", Mode="", Save=""):
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
+    get_directories(f, f"track-jet-qa")
     for dirName in  Directories:
-        if (Mode=="Tree") and (dirName=="EventProp"):
-            f.Close()
-            # the AnalysisResults.root file, produced on hyperloop with tree creation->Contains eventProp's.
-            f = TFile.Open(InputDir.strip("AnalysisResults_trees.root")+"AnalysisResults.root", "READ")
-        elif dirName == "Centrality":#not calibrated
-            return
         dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
         for obj in dir:
             o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
             if not o:
                 print("Did not get", o, " as object ", obj)
                 continue
-            if "TH1" in o.ClassName():
+            if "TH1" in o.ClassName():#Rejectionhisto in EventProp/rejectedCollId
                 can = canvas(o.GetTitle())
                 o.SetMarkerStyle(21)
                 o.SetMarkerColor(4)
                 o.GetYaxis().SetTitle("number of entries")
-                if "pt" in o.GetName():
-                    can.SetLogy()
-                elif ("collisionVtxZ" in o.GetName()) or ("Mult"==dirName):
-                    o.SetTitle("")# to still display number of events
-                else:
-                    o.SetTitle("")
-                    o.SetStats(0)
                 o.Draw("E")
-            elif "TH2" in o.ClassName():
-                can = canvas(o.GetTitle())
-                can.SetLogz()
-                o.SetStats(0)
-                o.Draw("COLZ")
-                profileTH2X(o, dirName)
-                if "etaVSphi" == o.GetName():
-                    projectTH2(o, dirName)
-            elif "TH3" in o.ClassName():
-                histos = []
-                for i in range(1,5):
-                    N = o.GetNbinsX()
-                    j = i*i
-                    can = canvas(o.GetTitle()+str(i))
-                    o.SetStats(0)
-                    o.GetXaxis().SetRange(i, i*i)
-                    h = o.Project3D("yz")
-                    h.SetStats(0)
-                    h.SetDirectory(0)
-                    h.SetTitle("Projection range #it{p}_{T}: "+str(o.GetXaxis().GetBinCenter(i))+" - "+str(o.GetXaxis().GetBinCenter(j))+" GeV/#it{c}")
-                    h.Draw("COLZ")
-                    histos.append(h)
-                    o.GetXaxis().SetRange(0, N)
-            elif "THnSparse" in o.ClassName():
-                ProjectTHnSparse(o,o.GetNdimensions(), dirName)
-            else:
-                print("we miss something..")
-                print(o.ClassName())
-        if Save=="True":
-            dataSet = InputDir.strip("Results/"+"/AnalysisResults.root"+"/AnalysisResults_trees.root")
-            if Mode=="Tree":
-                save2 = f"Save_Tree/{dataSet}/"
-                os.makedirs(os.path.dirname(save2), exist_ok=True)
-                save_name = f"Save_Tree/{dataSet}/{dirName}.pdf"
-            if Mode=="Full":
-                save_name = f"Save/{dataSet}/{dirName}.pdf"
-            saveCanvasList(canvas_list, save_name, dataSet)
-        else:
-            print("we don't save this ...")
-            clear_canvaslist()
-
-def compareDataSets(DataSets={}, Save=""):
-    files = {}
-    histos = []
-    for dataSet in DataSets:#make first one the base line for ratios and saving
-        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
-        if not f or not f.IsOpen():
-            print("Did not get", f)
-            return
-        files[dataSet] = f
-        for dirName in  Directories:
-            if dirName == "Centrality":#not (yet) calibrated
+            if "TH2" in o.ClassName():#Flag bits
                 continue
-            dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
-            for obj in dir:
-                o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
-                if not o:
-                    print("Did not get", o, " as object ", obj)
-                    continue
-                if "TH1" in o.ClassName():
-                    #print(o.GetName())
-                    h = o.Clone()
-                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
-                    histos.append(h)
-                elif "TH2" in o.ClassName():#to be done as well
-                    prof = o.ProfileX()
-                    prof.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Profile "+o.GetXaxis().GetTitle())
-                    prof.SetTitle(o.GetTitle()+" Profile "+o.GetXaxis().GetTitle())
-                    histos.append(prof)
-                    proj = o.ProjectionY()
-                    proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetYaxis().GetTitle())
-                    proj.SetTitle(o.GetTitle()+" Projection "+o.GetYaxis().GetTitle())
-                    histos.append(proj)
-                    if not "#it{p}_{T}" in o.GetXaxis().GetTitle():
-                        proj = o.ProjectionX()
-                        proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetXaxis().GetTitle())
-                        proj.SetTitle(o.GetTitle()+" Projection "+o.GetXaxis().GetTitle())
-                        histos.append(proj)
-                elif "TH3":
-                    continue
-                elif "THnSparse" in o.ClassName():
-                    continue
-                else:
-                    print("We miss some histotypes...")
-    for dirName in Directories:
-        for h in histos:
-            if not dirName in h.GetName():
-                continue
-            if (f"Compare_{h.GetTitle()}") in canvas_list:
-                continue
-            else:
-                can = canvas("Compare_"+h.GetTitle())
-                name = h.GetTitle()
-                histo = [h for h in histos if h.GetTitle() == name]
-                col = [1,2,214,209,221]
-                can.cd()
-                c = -1
-                for h in histo:
-                    c +=1
-                    nEntries = h.Integral()
-                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
-                    h.SetName(newName)#+": "+f"{nEntries}")
-                    h.Scale(1/nEntries)
-                    h.GetYaxis().SetTitle("scaled by (1/Intregral)")
-                    h.SetLineColor(col[c])
-                    h.SetMarkerColor(col[c])
-                    h.SetMarkerStyle(23+c)
-                    h.SetStats(0)
-                    h.SetDirectory(0)
-                    if c == 0:
-                        h.Draw("E")
-                    else:
-                        h.Draw("SAME")
-                legend = createLegend(objects=histo, x=[0, 1], y=[0.86,0.97], columns=len(DataSets))
-                legend.Draw("SAME")
-                can.SetLogy()
-        if Save=="True":
-            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/{dirName}.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
-            
-        else:
-            print("Wait, don't save this ... ")
-            clear_canvaslist()
-
-def ratioDataSets(DataSets={}, Save=""):
-    files = {}
-    histos = []
-    for dataSet in DataSets:#make first one the base line for ratios and saving
-        f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
-        if not f or not f.IsOpen():
-            print("Did not get", f)
-            return
-        files[dataSet] = f
-        for dirName in  Directories:
-            if dirName == "Centrality":#not (yet) calibrated
-                continue
-            dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
-            for obj in dir:
-                o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
-                if not o:
-                    print("Did not get", o, " as object ", obj)
-                    continue
-                if "TH1" in o.ClassName():
-                    #print(o.GetName())
-                    h = o.Clone()
-                    h.SetName(dataSet+" "+dirName+" "+o.GetName())
-                    histos.append(h)
-                elif "TH2" in o.ClassName():#to be improved as well
-                    prof = o.ProfileX()
-                    prof.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Profile "+o.GetXaxis().GetTitle())
-                    prof.SetTitle(o.GetTitle()+" Profile "+o.GetXaxis().GetTitle())
-                    histos.append(prof)
-                    proj = o.ProjectionY()
-                    proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetYaxis().GetTitle())
-                    proj.SetTitle(o.GetTitle()+" Projection "+o.GetYaxis().GetTitle())
-                    histos.append(proj)
-                    if not "#it{p}_{T}" in o.GetXaxis().GetTitle():
-                        proj = o.ProjectionX()
-                        proj.SetName(" "+dataSet+" "+dirName+" "+o.GetName()+"Projection "+o.GetXaxis().GetTitle())
-                        proj.SetTitle(o.GetTitle()+" Projection "+o.GetXaxis().GetTitle())
-                        histos.append(proj)
-                elif "TH3":
-                    continue
-                elif "THnSparse" in o.ClassName():
-                    continue
-                else:
-                    print("We miss some histotypes...")
-    for dirName in Directories:
-        for h in histos:
-            if not dirName in h.GetName():
-                continue
-            if (f"Compare_{h.GetTitle()}") in canvas_list:
-                continue
-            else:
-                can = canvas("Ratio_"+h.GetTitle())
-                name = h.GetTitle()
-                histo = [h for h in histos if h.GetTitle() == name]
-                col = [1,2,214,209,221]
-                c = -1
-                can.cd()
-                for h in histo:
-                    c +=1
-                    nEntries = h.Integral()
-                    newName = h.GetName().strip(" "+dirName+" "+h.GetTitle())[:16]
-                    h.SetName(newName)#+": "+f"{nEntries}")
-                    h.Scale(1/nEntries)
-                    h.GetYaxis().SetTitle("scaled by (1/Integral)")
-                    h.SetLineColor(col[c])
-                    h.SetMarkerColor(col[c])
-                    h.SetMarkerStyle(23+c)
-                    h.SetStats(0)
-                    if c == 0:
+            if "THnSparse" in o.ClassName():
+                if "collisionVtxZ" in o.GetName():
+                    projectEventProp(o)
+                if "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                    projectCorrelationsTo1D(o,o.GetNdimensions())
+                    projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]])
+                if "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                    projectCorrelationsTo1D(o,o.GetNdimensions())
+                    projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
+                    projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
+                if "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
+                    projectCorrelationsTo1D(o, 4, scaled=False)
+                    projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)
+                    profile2DProjection(o, [[0,1], [0,2], [0,3]])
+                if "xyz" in o.GetName():
+                    projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2], [0,3], [0,4]])
+                if "alpha" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "signed1Pt" in o.GetName():#add ratio pos neg !
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                    projectCorrelationsTo1D(o, 0, scaled=False)
+                if "snp" in o.GetName():#improve binning !
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    profile2DProjection(o, [[0,2]])
+                if "tgl" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    profile2DProjection(o, [[0,2]])
+                if "dcaXY" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "length" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    profile2DProjection(o, [[0,2]])
+                if "dcaZ" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "itsNCls" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "itsChi2NCl" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "itsHits" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=1, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcNClsFindable" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcNClsFound" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcNClsShared" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcNClsCrossedRows" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcFractionSharedCls" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcCrossedRowsOverFindableCls" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0]])
+                    profile2DProjection(o, [[0,2]])
+                if "tpcChi2NCl" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                if "Sigma1Pt" in o.GetName():
+                    if "TRD" in o.GetName():#write extra function in additional script
                         continue
                     else:
-                        h.Sumw2()
-                        h.Divide(histo[0])
-                        h.GetYaxis().SetTitle("(DataSet/"+histo[0].GetName()+")")
-                        if c == 1:
-                            h.Draw("E")
-                        else:
-                            h.Draw("SAME")
-                    #input("Wait")
-                legend = createLegend(objects=histo, x=[0 ,1], y=[0.86,0.97], columns=len(DataSets))
-                legend.Draw("SAME")
-                can.SetLogy()
-        if Save=="True":
-            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/{dirName}Ratios.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
-            
-        else:
-            print("Wait, we are at ")
-            clear_canvaslist()
-    print("Compared ratios of full dataset results")
-
-def doRatio(pt,ptTRD, nSet, title="", makerStyle=0):
-    r = pt.Clone()
-    r.Sumw2()
-    r.SetStats(0)
-    r.Divide(ptTRD)
-    r.SetLineColor(nSet+1)
-    r.SetMarkerStyle(makerStyle)
-    r.SetMarkerColor(nSet+1)
-    r.GetYaxis().SetTitle(title)
-    r.SetDirectory(0)
-    r.SetTitle(" ")
-    return r
-
-def draw2DSigmaPt(title=" ",sigma1Pt=None):
-    sigma1Pt.SetStats(0)
-    sigma1Pt.SetTitle(title)
-    sigma1Pt.GetYaxis().SetTitle("#it{p}_{T} * #sigma(1/#it{p}_{T})")
-    sigma1Pt.Draw("COLZ")
-    return sigma1Pt
-
-def draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets):
-    if len(DataSets)==1:
-        canS.Divide(1,3)
-        canS.cd(1)
-        sigma1Pt = draw2DSigmaPt("all tracks", sigma1Pt)
-        canS.cd(1).SetLogz()
-        canS.cd(2)
-        sigma1Pt_TRD = draw2DSigmaPt("track.hasTRD()", sigma1Pt_TRD)
-        canS.cd(2).SetLogz()
-        canS.cd(3)
-        sigma1Pt_noTRD = draw2DSigmaPt("!track.hasTRD()", sigma1Pt_noTRD)
-        canS.cd(3).SetLogz()
+                        projectCorrelationsTo1D(o, 1, scaled=False)
+                        projectCorrelationsTo2D(o, [[1,0]])
+                        profile2DProjection(o, [[0,1]])
+            else:
+                print(o.GetName())
+                print("we miss something..")
+            if Save ==False:
+                input("Wait and check the histograms !")
+    if Save=="True":
+        dataSetArr = re.findall(r'\/.*?\/', InputDir)
+        dataSet=dataSetArr[0].strip("/")
+        print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
+        saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
+        clear_canvaslist()
     else:
-        if dataSet == DataSets[0]:
-            canS.cd(1)
-            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
-            canS.cd(1).SetLogz()
-            canS.cd(2)
-            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
-            canS.cd(2).SetLogz()
-            canS.cd(3)
-            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
-            canS.cd(3).SetLogz()
-        elif(dataSet == DataSets[1]):
-            canS.cd(4)
-            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
-            canS.cd(4).SetLogz()
-            canS.cd(5)
-            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
-            canS.cd(5).SetLogz()
-            canS.cd(6)
-            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
-            canS.cd(6).SetLogz()
-        elif(dataSet == DataSets[2]):
-            canS.cd(7)
-            sigma1Pt = draw2DSigmaPt(f"{dataSet} all tracks",sigma1Pt)
-            canS.cd(7).SetLogz()
-            canS.cd(8)
-            sigma1Pt_TRD = draw2DSigmaPt(f"{dataSet} track.hasTRD()",sigma1Pt_TRD)
-            canS.cd(8).SetLogz()
-            canS.cd(9)
-            sigma1Pt_noTRD = draw2DSigmaPt(f"{dataSet} ! track.hasTRD()",sigma1Pt_noTRD)
-            canS.cd(9).SetLogz()
-        else:
-            print("Not enought canvas splits for sigma1Pt !!!")
-
-def profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, nSet=None):
-    prof = sigma1Pt.ProfileX()
-    profTRD = sigma1Pt_TRD.ProfileX()
-    profNoTRD = sigma1Pt_noTRD.ProfileX()
-    prof.SetStats(0)
-    prof.GetYaxis().SetTitle("mean of #it{p}_{T} * #sigma(1/#it{p}_{T})")
-    prof.SetName(f"{dataSet} all tracks")
-    prof.SetTitle(f"profiles of {dataSet}")
-    prof.SetLineColor(1)
-    profTRD.SetName("track.hasTRD()")
-    profTRD.SetLineColor(2)
-    profNoTRD.SetName("!track.hasTRD")
-    profNoTRD.SetLineColor(4)
-    if nSet is not None:
-        prof.SetTitle(" ")
-        prof.SetMarkerStyle(24+nSet)
-        prof.SetMarkerColor(1)
-        profTRD.SetMarkerColor(2)
-        profTRD.SetName(f"{dataSet} track.hasTRD()")
-        profTRD.SetMarkerStyle(24+nSet)
-        profNoTRD.SetName(f"{dataSet} !track.hasTRD")
-        profNoTRD.SetMarkerStyle(24+nSet)
-        profNoTRD.SetMarkerColor(4)
-    return prof, profTRD, profNoTRD
-
-def histosTRD(pt, ptTRD, dataSet, nSet=None):
-    Npt = pt.GetEntries()
-    NptTRD = ptTRD.GetEntries()
-    pt.SetTitle(" ")
-    pt.SetLineColor(2)
-    pt.SetMarkerColor(2)
-    ptTRD.SetLineColor(4)
-    ptTRD.SetMarkerColor(4)
-    pt.SetName(f"{dataSet}: all tracks")
-    ptTRD.SetName(f"{dataSet}: track.hasTRD()")
-    if nSet==None:
-        pt.SetMarkerStyle(24)
-        pt.SetMarkerColor(2)
-        ptTRD.SetMarkerStyle(25)
-        ptTRD.SetMarkerColor(4)
-        pt.SetStats(0)
-        pt.SetTitle(f"{dataSet}")
-        pt.SetName(f"{Npt}: tracks")
-        ptTRD.SetName(f"{NptTRD}: withTRD")
-    elif nSet==0:
-        pt.SetMarkerStyle(24)
-        ptTRD.SetMarkerStyle(24)
-        pt.SetStats(0)
-        pt.SetTitle(" ")
-    elif nSet>0:
-        pt.SetMarkerStyle(24+nSet)
-        ptTRD.SetMarkerStyle(24+nSet)
-
-
-def compareTRD(DataSets={}, Save=""):
-    files = {}
-    histos = []
-    if len(DataSets) == 1:
-        f = TFile.Open(f"{DataSets[0]}","READ")
-        dataSet=DataSets[0].strip("Results/")[:15]#length of data set name
-        sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt")
-        sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD")
-        sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD")
-
-        canS = canvas("TH2 Sigma1Pt vs Pt", x=800, y=1200)
-        draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
-        canP = canvas("TH2 Sigma1Pt Profile over pT")
-        prof, profTRD, profNoTRD = profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, None)
-        prof.Draw("E")
-        profTRD.Draw("ESAME")
-        profNoTRD.Draw("ESAME")
-        canP.SetLogz()
-        canP.SetTopMargin(0.1)
-        legP = createLegend(x=[0.2, 0.4], y=[0.6, 0.8], objects=[prof, profTRD, profNoTRD])
-        legP.Draw()
-
-        pt = f.Get(f"track-jet-qa/Kine/pt")
-        ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD")
-        can = canvas("TH1F pT TRD ")
-        histosTRD(pt, ptTRD, dataSet, None)
-        pt.Draw("E")
-        ptTRD.Draw("ESAME")
-        can.SetLogy()
-        can.SetTopMargin(0.1)
-        leg = createLegend(x=[0.5, 0.85], y=[0.6,0.85], objects=[pt,ptTRD])
-        leg.Draw()
-
-        canR = canvas("TH1F pT TRD ratio")
-        r = doRatio(pt,ptTRD,1,"tracks/track.hasTRD()",24)
-        r.SetName(dataSet)
-        r.Draw("E")
-        canR.SetLogy()
-        legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
-        legR.Draw()
-        if Save=="True":
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")    
-        else:
-            clear_canvaslist()
-        print(f"TRD checks for a {dataSet} are done")
-
-    else:
-        can = canvas("Compare TH1F's pT TRD ")
-        leg = createLegend(x=[0.25, 0.8], y=[0.5,0.85], columns=1, objects=[])
-
-        canR = canvas("Compare Ratios of TH1F's pT TRD ")#, x=700, y=900)
-        canR.Divide(1,2)
-
-        canS = canvas("TH2 Sigma1Pt vs Pt", x=1000, y=1000)
-        canS.Divide(3,len(DataSets))
-        
-        canP = canvas("Compare TH2 Sigma1Pt Profile over pT")
-        legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
-
-        canPR = canvas("Compare Ratios TH2 Sigma1Pt Profile over pT")
-        canPR.Divide(len(DataSets)-1,3)
-        legP = createLegend(x=[0.2, 0.8], y=[0.86,1], columns=3, objects=[])
-
-        nSet = 0
-        rArr = []
-        for dataSet in DataSets:#make first one the base line for ratios and saving
-            f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
-            if not f or not f.IsOpen():
-                print("Did not get", f)
-                return
-            files[dataSet] = f
-            #dir = f.Get(f"track-jet-qa/Kine").GetListOfKeys()
-            pt = f.Get(f"track-jet-qa/Kine/pt")
-            ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD")
-
-            can.cd()
-            if dataSet == DataSets[0]:
-                histosTRD(pt, ptTRD, dataSet, nSet)
-                pt.Draw("E")
-                ptTRD.Draw("ESAME")
-                leg.AddEntry(pt, f"{pt.GetName()}", "lp")
-                leg.AddEntry(ptTRD, f"{ptTRD.GetName()}", "lp")
-            else:
-                nSet += 1
-                histosTRD(pt, ptTRD, dataSet, nSet)
-                pt.Draw("ESAME")
-                ptTRD.Draw("ESAME")
-                leg.AddEntry(pt, f"{pt.GetName()}", "lp")
-                leg.AddEntry(ptTRD, f"{ptTRD.GetName()}", "lp")
-            leg.Draw()
-            can.SetTopMargin(0.1)
-            can.SetLogy()
-            r = doRatio(pt,ptTRD,nSet,"all tracks/track.hasTRD()")
-            r.SetDirectory(0)
-            r.SetName(f"{dataSet}")
-            rArr.append(r)
-            #print(r)
-
-            canR.cd(1)
-            if dataSet == DataSets[0]:
-                r.DrawCopy("E")
-                r0 = r.Clone()
-                r0.SetDirectory(0)
-            else:
-                dr = doRatio(r,r0,nSet, f"Ratio to {DataSets[0]}")
-                r.DrawCopy("ESAME")
-                canR.cd(2)
-                if dataSet ==DataSets[1]:
-                    dr.DrawCopy("E")
-                else:
-                    dr.DrawCopy("ESAME")
-            canR.cd()
-            if dataSet == DataSets[len(DataSets)-1]:
-                legR = createLegend(x=[0.2, 0.8], y=[0.45,0.5], columns=2, objects=rArr)
-                legR.Draw()
-                canR.cd(1).SetLogy()
-                canR.cd(2).SetLogy()
-
-            sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt")
-            sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD")
-            sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD")
-
-            canS.cd()
-            draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
-            canP.cd()
-            prof, profTRD, profNoTRD = profilesTRD(sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, nSet)
-            if dataSet==DataSets[0]:
-                legP.AddEntry(prof, f"{prof.GetName()}", "lep")
-                prof0 = prof.Clone()
-                profTRD0 = profTRD.Clone()
-                profNoTRD0 = profNoTRD.Clone()
-                prof.Draw("E")
-            else:
-                legP.AddEntry(prof, f"{prof.GetName()}", "lep")
-                rProf = doRatio(prof,prof0,0,f"{dataSet} / {DataSets[0]}",makerStyle=24+nSet)
-                rProfTRD = doRatio(profTRD,profTRD0,1,f"{dataSet} / {DataSets[0]}",makerStyle=24+nSet)
-                rProfNoTRD = doRatio(profNoTRD,profNoTRD0,3, f"{dataSet} / {DataSets[0]}", makerStyle=24+nSet)
-                if len(DataSets) == 2:
-                    canPR.cd(1)
-                    rProf.DrawCopy("E")
-                    canPR.cd(2)
-                    rProfTRD.DrawCopy("E")
-                    canPR.cd(3)
-                    rProfNoTRD.DrawCopy("E")
-                elif len(DataSets) == 3:
-                    if dataSet == DataSets[1]:
-                        canPR.cd(1)
-                        rProf.DrawCopy("E")
-                        canPR.cd(3)
-                        rProfTRD.DrawCopy("E")
-                        canPR.cd(5)
-                        rProfNoTRD.DrawCopy("E")
-                    elif dataSet == DataSets[2]:
-                        canPR.cd(2)
-                        rProf.DrawCopy("E")
-                        canPR.cd(4)
-                        rProfTRD.DrawCopy("E")
-                        canPR.cd(6)
-                        rProfNoTRD.DrawCopy("E")
-                canP.cd()
-                prof.Draw("ESAME")
-            profTRD.Draw("ESAME")
-            profNoTRD.Draw("ESAME")
-            canP.SetLogy()
-            canP.cd()
-            legP.AddEntry(profTRD, f"{profTRD.GetName()}", "lep")
-            legP.AddEntry(profNoTRD, f"{profNoTRD.GetName()}", "lep")
-            legP.Draw("SAME")
-        if Save=="True":
-            saveCanvasList(canvas_list, f"Save/CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/TRD_checks.pdf", f"CompareAll{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")
-                
-        else:
-            print("Wait, we are at ")
-            clear_canvaslist()
-    print("Compared ratios of full dataset results")
+        print("we don't save this ...")
+        clear_canvaslist()
 
 
     
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--Mode", "-m", type=str,
-                        default=["Full", "Tree", "CompareDataSets"], help="Activate 'CompareDataSets', or plots QA AnalysisResults from 'Full' , 'Tree'(derived) results")
+                        default=["Full", "TRD", "COMPARE"], help="Activate 'CompareDataSets', or plots QA AnalysisResults from 'Full' , 'Tree'(derived) results")
     parser.add_argument("--Input", "-in", type=str,
-                        default="Results/LHC22s_pass5/AnalysisResults.root", help="Path and File input")
-    parser.add_argument("--DataSets","-d", type=str, nargs="+",
-                        default="LHC23zzh_cpass1 LHC23zzh_cpass1", help="Specify the results from the periods you want to compare (without comma)")
+                        default="Results/LHC22s_pass5/AnalysisResults.root", help="Path and File input", nargs="+")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
     args = parser.parse_args()
 
-    if args.Mode=="Tree" or args.Mode=="Full":
-        drawPlots(args.Input, args.Mode, args.Save)
-        compareTRD([args.Input], args.Save)
-        
-
-    if args.Mode=="CompareDataSets":# to compare Full results
-        compareDataSets(args.DataSets, args.Save)
-        ratioDataSets(args.DataSets, args.Save)
-        compareTRD(args.DataSets, args.Save)
-
-
-    #compareCuts()
-#./processResults.py --Mode CompareDataSets --DataSets LHC23zzh_cpass1 LHC23zzh_cpass2 --Save True
-#./processResults.py --Mode Full --Input Results/LHC23zzh_cpass2/AnalysisResults.root --Save True
-
+    if args.Mode=="FULL":
+        drawPlots(args.Input[0], args.Mode, args.Save)
+        compareTRD(args.Input, args.Save)
+    if args.Mode=="QA":
+        drawPlots(args.Input[0], args.Mode, args.Save)
+    if args.Mode=="TRD":
+        compareTRD(args.Input, args.Save)
+    if args.Mode=="COMPARE":
+        DataSets = []
+        for file in args.Input:
+            print(file)
+            dataSetArr = re.findall(r'\/.*?\/', file)
+            dataSet=dataSetArr[0].strip("/")
+            DataSets.append(dataSet)
+        compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")#needs a fix for division by 0 !
+        compareTRD(DataSets, args.Save)
 main()
     
