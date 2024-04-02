@@ -19,11 +19,11 @@ def propagateFullyCorrelatedError(hres, h0):
                  term1 = pow(res.GetBinError(i) / res.GetBinContent(i), 2) 
                  term2 = pow(h0.GetBinError(i) / h0.GetBinContent(i), 2)
                  term3 = pow(res.GetBinError(i),2)/(res.GetBinContent(i)*h0.GetBinContent(i))
-                 print("term1 ", term1, "term2 ", term2, "term3 ", term3)
+                 #print("term1 ", term1, "term2 ", term2, "term3 ", term3)
                  err_avg = (res.GetBinContent(i)/h0.GetBinContent(i))*pow(abs(term1 + term2 - 2*term3), 0.5) 
              else:
                  err_avg = 0
-             print("Bin Nr.: ", i, " bin value:", res.GetBinCenter(i), " ratio content: ", val, " err_avg:", err_avg)
+            # print("Bin Nr.: ", i, " bin value:", res.GetBinCenter(i), " ratio content: ", val, " err_avg:", err_avg)
          else:
              val = 0
              err_avg = 0
@@ -44,7 +44,8 @@ def ratioDataSets(histos=[]):
         h = o.Clone()
         c +=1
         nEntries = h.Integral()
-        newName = h.GetName().split(" ",1)
+        name = h.GetName()
+        newName = name.split(" ",1)
         h.SetTitle("Ratio "+h.GetTitle())
         h.SetName(newName[0])
         if abs(nEntries) > 0:
@@ -96,6 +97,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             print("Did not get", o, " as object ", obj)
                             continue
                         elif "TH1" in o.ClassName():
+                            continue
                             h = o.Clone()
                             h.SetName(cutVar+" "+dirName+" "+o.GetName())
                             h.SetTitle(cutVar+" "+h.GetTitle())
@@ -107,10 +109,11 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                 tmp = projectEventProp(o, output=tmp, dataSet=dataSet)
                                 for h in tmp:# seems to be redundant to do this loop for every case, but with only one else in the end I will get trouble for tgl..
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
-                                    h.SetTitle(h.GetTitle())
+                                    h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
                                     histos.append(h)
                             elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                                continue    
                                 tmp = projectCorrelationsTo1D(o,o.GetNdimensions(), output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
@@ -118,6 +121,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetDirectory(0)
                                     histos.append(h)
                             elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                                continue
                                 tmp = projectCorrelationsTo1D(o,o.GetNdimensions(), output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
@@ -167,6 +171,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetDirectory(0)
                                     histos.append(h)
         if CutVars == None:
+            continue
             f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
             if not f or not f.IsOpen():
                 print("Did not get", f)
@@ -245,56 +250,64 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
                                 histos.append(h)
-    for dirName in Directories:
-        for h in histos:
-            histo = []
-            if not dirName in h.GetName():
-                continue
-            name = h.GetTitle().split(" ",1)
-            if (f"Compare_{name[1]}") in canvas_list:
-                continue
-            else:
-                can = canvas("Compare_"+name[1])
-                if "tgl" in name[1]:
-                    histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
+    for h in histos:
+        print("len histos", len(histos))
+        if(("FT0" in h.GetTitle()) or ("Mult" in o.GetTitle())):
+           continue
+        histo = []
+        tmp_name = h.GetTitle()
+        name = tmp_name.split(" ",1)
+        print(name)
+        if name[1] == None:
+            continue
+        print(len(canvas_list))
+        if (f"Compare_{name[1]}") in canvas_list:
+            continue
+        else:
+            can = canvas("Compare_"+name[1])
+            hist = [h for h in histos if( h.GetTitle().split(" ",1)[1] == name[1])]
+            print("before append: len(histo) ", len(histo), " remove: len(histos) ", len(histos))
+            for h in hist:
+                histo.append(h)
+                histos.remove(h)
+            print("after append: len(histo) ", len(histo), " remove: len(histos) ", len(histos))
+            if len(histo) < 2:
+                print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
+                input("wait")
+            colors = make_color_range(len(histo))
+            can.cd()
+            c = -1
+            for j in histo:
+                col = colors.pop(0)
+                c +=1
+                nEntries = j.Integral()
+                name = j.GetName()
+                newName = name.split(" ",1)
+                title = j.GetTitle()
+                newTitle = title.split(" ",1)
+                j.SetTitle(newTitle[1])
+                j.SetName(newName[0])#+": "+f"{nEntries}")
+                if abs(nEntries) > 0:
+                    j.Scale(1/nEntries)
+                    j.GetYaxis().SetTitle("scaled by (1/Intregral)")
+                    if "tgl" in j.GetXaxis().GetTitle():
+                        j.GetYaxis().SetRangeUser(0,0.008)
+                j.SetLineColor(col)
+                j.SetMarkerColor(col)
+                j.SetMarkerStyle(23+c)
+                j.SetStats(0)
+                j.SetDirectory(0)
+                if c == 0:
+                   j.Draw("E")
                 else:
-                    print(name[1], " name[1] ", name, " name ")
-                    histo = [h for h in histos if (h.GetTitle().split(" ", 1)[1] == name[1])]
-                if len(histo) < 2:
-                    print("less than 2 histos to compare... ? You are comparing something to nothing...", name[1])
-                    input("wait")
-                colors = make_color_range(len(histo))
-                #col = colors.pop(0)
-                # col = [1,2,214,209,221]
-                can.cd()
-                c = -1
-                for h in histo:
-                    col = colors.pop(0)
-                    c +=1
-                    nEntries = h.Integral()
-                    newName = h.GetName().split(" ",1)
-                    newTitle = h.GetTitle().split(" ",1)
-                    h.SetTitle(newTitle[1])
-                    h.SetName(newName[0])#+": "+f"{nEntries}")
-                    if abs(nEntries) > 0:
-                        h.Scale(1/nEntries)
-                        h.GetYaxis().SetTitle("scaled by (1/Intregral)")
-                    h.SetLineColor(col)
-                    h.SetMarkerColor(col)
-                    h.SetMarkerStyle(23+c)
-                    h.SetStats(0)
-                    h.SetDirectory(0)
-                    if c == 0:
-                        h.Draw("E")
-                    else:
-                        h.Draw("SAME")
-                legend = createLegend(objects=histo, x=[0, 1], y=[0.87,0.93], columns=len(DataSets))
-                can.cd()
-                legend.Draw("SAME")
-                if h.GetYaxis().GetBinCenter(0) > 0:
-                    can.SetLogy()
-                if doRatios != None:
-                    ratioDataSets(histos=histo)
+                    j.Draw("SAME")
+            legend = createLegend(objects=histo, x=[0, 1], y=[0.87,0.93], columns=len(DataSets))
+            can.cd()
+            legend.Draw("SAME")
+            if h.GetYaxis().GetBinCenter(0) > 0:
+                can.SetLogy()
+            if doRatios != None:
+                ratioDataSets(histos=histo)
     if (Save=="True"):
         if CutVars == None:
             saveCanvasList(canvas_list, f"Save/Compare_{DataSets[0]}_to_{DataSets[len(DataSets)-1]}/ProjectionsAndProfiles.pdf", f"Compare_{DataSets[0]}_to_{DataSets[len(DataSets)-1]}")  

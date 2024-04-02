@@ -87,6 +87,7 @@ def plotResults(Path, DataSet, RunNumber, Save="",CutVar=[]):
 
 def generate_cutVarArr(Type):
     cutVarArr = []
+    cutVarArr.append("globalTrackWoPtEta")#baseline for ratios
     All = ["maxChi2PerClusterITS30", "maxChi2PerClusterITS42", 
            "maxChi2PerClusterTPC2", "maxChi2PerClusterTPC3", "maxChi2PerClusterTPC5", "maxChi2PerClusterTPC6",
            "maxDcaZ1", "maxDcaZ3",
