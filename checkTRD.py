@@ -133,13 +133,14 @@ def histosTRD(pt, ptTRD, dataSet, nSet=None):
         pt.SetMarkerStyle(24+nSet)
         ptTRD.SetMarkerStyle(24+nSet)
 
-def compareTRD(DataSets={}, Save=""):
+def compareTRD(DataSets={}, Save="", dataSet=None):
     files = {}
     histos = []
     if len(DataSets) == 1:
         f = TFile.Open(f"{DataSets[0]}","READ")
         dataSetArr = re.findall(r'\/.*?\/', DataSets[0])
-        dataSet=dataSetArr[0].strip("/")
+        if dataSet==None:
+            dataSet=dataSetArr[0].strip("/")
         sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt").Projection(1,0)
         sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD").Projection(1,0)
         sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD").Projection(1,0)

@@ -57,7 +57,7 @@ def plotResults(Path, DataSet, RunNumber, Save="",CutVar=[]):
                         projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
                         projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
                     elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
-                        projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)#check binning
+                        projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [1,200]], logz=True)#check binning
                         continue
                     elif "Sigma1Pt" in o.GetName():
                         if "TRD" in o.GetName():#write extra function in additional script
