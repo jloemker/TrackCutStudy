@@ -8,7 +8,7 @@ import ROOT
 from common import canvas, canvas_list
 ROOT.gROOT.SetBatch(True)
 
-def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, output=None, dataSet=None):
+def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, output=None, dataSet=None, scaleFactor=100):
     if (dim == 0) or (dim == dim_min):
         histo = o.Projection(dim)
         histo.GetYaxis().SetTitle("number of entries")
@@ -51,17 +51,36 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
             histo = o.Projection(axis)
             histo.GetYaxis().SetTitle("number of entries")
             if "#it{p}_{T}" in histo.GetXaxis().GetTitle():
-                logy==True
+                logy=True
+               # input("logy")
             if scaled==True:
+                print("scaling histos")
                 histo.SetStats(0)
-                histo.Scale(1/histo.Integral())
-                histo.GetYaxis().SetTitle("scaled by 1/Integral")
+                histo.Scale(1/scaleFactor)
+                #histo.GetYaxis().SetTitle("scaled by 1/Integral")
+                histo.GetYaxis().SetTitle("Counts/N_{Event}")
             histo.SetName(histo.GetTitle())
             if output == None:
                 can = canvas(histo.GetTitle())
+                histo.SetStats(0)
+                histo.SetMarkerStyle(34)
+                histo.SetLineColor(1)
                 histo.Draw("E")
-                if logy == True:
+                if logy==True:
                     can.SetLogy()
+                   # input("SetLogy()")
+               # if scaleFactor != None:
+                  # print("scaling histos")
+                  # histo.Scale(1/scaleFactor)
+                if ("#phi" in histo.GetXaxis().GetTitle()):
+                    min_y = histo.GetBinContent(histo.GetMinimumBin())-histo.GetBinContent(histo.GetMinimumBin())/3
+                    max_y = histo.GetBinContent(histo.GetMaximumBin())+histo.GetBinContent(histo.GetMaximumBin())/3
+                    histo.GetYaxis().SetRangeUser(min_y, max_y)
+                    histo.GetYaxis().SetMoreLogLabels()
+               # if ("#eta" in histo.GetXaxis().GetTitle()):
+               #     min_y = histo.GetBinContent(histo.GetMinimumBin())-histo.GetBinContent(histo.GetMinimumBin())/3
+               #     max_y = histo.GetBinContent(histo.GetMaximumBin())+histo.GetBinContent(histo.GetMaximumBin())/3
+               #     histo.GetYaxis().SetRangeUser(min_y, max_y)   
             else:
                 #histo.SetTitle(dataSet+" "+histo.GetTitle())
                 histo.SetName(dataSet+" "+histo.GetName())
@@ -101,11 +120,13 @@ def profile2DProjection(o, axis, output=None, dataSet=None):
             output.append(prof)
         else:
             canProf = canvas(prof.GetName())
+            prof.SetMarkerStyle(34)
+            prof.SetLineColor(1)
             prof.Draw("E")
     if output !=None:
         return output
 
-def projectEventProp(o, output=None, dataSet=None):
+def projectEventProp(o, output=None, dataSet=None, extractScale=None):
     tmp = []
     h = o.Projection(0)
     h.GetYaxis().SetTitle("number of entries")
@@ -131,6 +152,11 @@ def projectEventProp(o, output=None, dataSet=None):
         h12.SetStats(0)
         can2D = canvas(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
         h12.Draw("COLZ")
+    if extractScale == True:
+        print("extracting scale..", h.GetName())
+        if h.GetName() == "collisionVtxZ":
+            print("h.GetName() ", h.GetName(), " h.Integral() ", h.Integral())
+            return h.Integral()
 
 def projectEtaPhiInPt(o, pt_ranges, logz=False, output=None, dataSet=None):
     for pT in pt_ranges: 

@@ -63,6 +63,7 @@ def ratioDataSets(histos=[]):
             if histos[0] != 0:
                 res = propagateFullyCorrelatedError(h, histos[0])
                 res.GetYaxis().SetTitle("(DataSet/"+histos[0].GetName()+")")
+                #res.GetYaxis().SetRangeUser(0.4, 1.4)
             if c == 1:
                 res.DrawCopy("E")
             else:
@@ -304,7 +305,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
             legend = createLegend(objects=histo, x=[0, 1], y=[0.87,0.93], columns=len(DataSets))
             can.cd()
             legend.Draw("SAME")
-            if h.GetYaxis().GetBinCenter(0) > 0:
+            if h.GetYaxis().GetBinCenter(1) > 0:
                 can.SetLogy()
             if doRatios != None:
                 ratioDataSets(histos=histo)
