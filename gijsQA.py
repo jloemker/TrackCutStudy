@@ -90,6 +90,7 @@ def main():
     if args.Mode=="TRD":
         compareTRD(args.Input, args.Save)
     if args.Mode=="COMPARE":
+        print("not fully implmented")
        # DataSets = args.DataSets
        # for file in args.Input:
        #     print(file)

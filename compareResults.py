@@ -81,6 +81,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
     if (RunNumber != None):
         DataSets[0] = RunNumber
     for dataSet in DataSets:#make first one the base line for ratios and saving
+        eventMult=0
         if CutVars != None:
             for cutVar in CutVars:
                 if (RunNumber != None):
@@ -107,10 +108,13 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                         elif "THnSparse" in o.ClassName():
                             tmp = []# to quick fix the existing functions with same renaming as before..
                             if "collisionVtxZ" in o.GetName():
-                                tmp = projectEventProp(o, output=tmp, dataSet=dataSet)
+                                if ("no" in o.GetName()) or ("Sel8" in o.GetName()):
+                                    continue
+                                eventMult, tmp = projectEventProp(o, output=tmp, dataSet=dataSet, extractScale=True)
                                 for h in tmp:# seems to be redundant to do this loop for every case, but with only one else in the end I will get trouble for tgl..
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
+                                    h.Scale(1/eventMult)
                                     h.SetDirectory(0)
                                     histos.append(h)
                             elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
@@ -130,12 +134,13 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetDirectory(0)
                                     histos.append(h)
                             elif "EtaPhiPt" in o.GetName():#
-                                tmp = profile2DProjection(o, [[0,1], [0,2], [0,3]], output=tmp, dataSet=dataSet)
-                                projectCorrelationsTo1D(o, 4, scaled=False, output=tmp, dataSet=dataSet)
+                                tmp = projectCorrelationsTo1D(o, 4, scaled=False, output=tmp, dataSet=dataSet)
+                                profile2DProjection(o, [[0,1], [0,2], [0,3]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
+                                    h.Scale(1/eventMult)
                                     histos.append(h)
                             elif ("Sigma1Pt" in o.GetName()) or ("TRD" in o.GetName()):#included in eta phi pt case write/tune the extra function in additional script
                                     continue
@@ -146,6 +151,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
+                                    h.Scale(1/eventMult)
                                     histos.append(h)
                             elif "alpha" in o.GetName():
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -154,6 +160,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
+                                    h.Scale(1/eventMult)
                                     histos.append(h)
                             elif "signed1Pt" in o.GetName():#add ratio pos neg !
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -162,6 +169,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
+                                    h.Scale(1/eventMult)
                                     histos.append(h)
                             else:
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -170,9 +178,9 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
+                                    h.Scale(1/eventMult)
                                     histos.append(h)
         if CutVars == None:
-            continue
             f = TFile.Open(f"{Path}/{dataSet}/AnalysisResults.root", "READ")
             if not f or not f.IsOpen():
                 print("Did not get", f)
@@ -195,22 +203,27 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                     elif "THnSparse" in o.ClassName():
                         tmp = []# to quick fix the existing functions with same renaming as before..
                         if "collisionVtxZ" in o.GetName():
-                            tmp = projectEventProp(o, output=tmp, dataSet=dataSet)
+                            if ("no" in o.GetName()) or ("Sel8" in o.GetName()):
+                                continue
+                            eventMult, tmp = projectEventProp(o, output=tmp, dataSet=dataSet, extractScale=True)
                             for h in tmp:# seems to be redundant to do this loop for every case, but with only one else in the end I will get trouble for tgl..
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
                             tmp = projectCorrelationsTo1D(o,o.GetNdimensions(), output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
                             tmp = projectCorrelationsTo1D(o,o.GetNdimensions(), output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif "EtaPhiPt" in o.GetName():#
                             tmp = profile2DProjection(o, [[0,1], [0,2], [0,3]], output=tmp, dataSet=dataSet)
@@ -218,6 +231,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif ("Sigma1Pt" in o.GetName()) or ("TRD" in o.GetName()):#included in eta phi pt case write/tune the extra function in additional script
                                 continue
@@ -227,6 +241,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif "alpha" in o.GetName():
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -234,6 +249,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         elif "signed1Pt" in o.GetName():#add ratio pos neg !
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -241,6 +257,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
                         else:
                             print(o.GetTitle())
@@ -250,6 +267,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
+                                h.Scale(1/eventMult)
                                 histos.append(h)
     for h in histos:
         print("len histos", len(histos))
@@ -288,11 +306,11 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                 newTitle = title.split(" ",1)
                 j.SetTitle(newTitle[1])
                 j.SetName(newName[0])#+": "+f"{nEntries}")
-                if abs(nEntries) > 0:
-                    j.Scale(1/nEntries)
-                    j.GetYaxis().SetTitle("scaled by (1/Intregral)")
-                    if "tgl" in j.GetXaxis().GetTitle():
-                        j.GetYaxis().SetRangeUser(0,0.008)
+               # if abs(nEntries) > 0:
+               #     j.Scale(1/nEntries)
+                j.GetYaxis().SetTitle("scaled by (1/N_{event})")
+                if "tgl" in j.GetXaxis().GetTitle():
+                    j.GetYaxis().SetRangeUser(0,0.008)
                 j.SetLineColor(col)
                 j.SetMarkerColor(col)
                 j.SetMarkerStyle(23+c)
