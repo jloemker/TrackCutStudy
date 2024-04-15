@@ -173,7 +173,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     histos.append(h)
         if CutVars == None:
             continue
-            f = TFile.Open(f"Results/{dataSet}/AnalysisResults.root", "READ")
+            f = TFile.Open(f"{Path}/{dataSet}/AnalysisResults.root", "READ")
             if not f or not f.IsOpen():
                 print("Did not get", f)
                 return
