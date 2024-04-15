@@ -23,6 +23,7 @@ def drawPlots(InputDir="", Mode="", Save=""):
         print("Did not get", f)
         return
     get_directories(f, f"track-jet-qa")
+    eventMult=0
     for dirName in  Directories:
         dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
         for obj in dir:
@@ -40,95 +41,60 @@ def drawPlots(InputDir="", Mode="", Save=""):
                 continue
             if "THnSparse" in o.ClassName():
                 if "collisionVtxZ" in o.GetName():
-                    projectEventProp(o)
-                if "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                    if ("no" in o.GetName()) or ("Sel8" in o.GetName()):
+                        projectEventProp(o)
+                    else:
+                        eventMult=projectEventProp(o, extractScale=True)
+                    print(eventMult)
+                elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
                     projectCorrelationsTo1D(o,o.GetNdimensions())
                     projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]])
-                if "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
                     projectCorrelationsTo1D(o,o.GetNdimensions())
                     projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
                     projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
-                if "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
-                    projectCorrelationsTo1D(o, 4, scaled=False)
+                elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
+                    projectCorrelationsTo1D(o, 4, scaled=True, scaleFactor=eventMult)
                     projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)
                     profile2DProjection(o, [[0,1], [0,2], [0,3]])
-                if "xyz" in o.GetName():
-                    projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False)
+                elif "xyz" in o.GetName():
+                   # projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False)
+                    projectCorrelationsTo1D(o, 5, dim_min=2, scaled=True, scaleFactor=eventMult)
                     projectCorrelationsTo2D(o, [[2,0], [2,1]])
                     profile2DProjection(o, [[0,2], [0,3], [0,4]])
-                if "alpha" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "signed1Pt" in o.GetName():#add ratio pos neg !
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                    projectCorrelationsTo1D(o, 0, scaled=False)
-                if "snp" in o.GetName():#improve binning !
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    profile2DProjection(o, [[0,2]])
-                if "tgl" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    profile2DProjection(o, [[0,2]])
-                if "dcaXY" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "length" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    profile2DProjection(o, [[0,2]])
-                if "dcaZ" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "itsNCls" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "itsChi2NCl" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "itsHits" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=1, scaled=False)
+                elif "tpcCrossedRowsOverFindableCls" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
                     projectCorrelationsTo2D(o, [[2,0]])
                     profile2DProjection(o, [[0,2]])
-                if "tpcNClsFindable" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcNClsFound" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcNClsShared" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcNClsCrossedRows" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcFractionSharedCls" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcCrossedRowsOverFindableCls" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0]])
-                    profile2DProjection(o, [[0,2]])
-                if "tpcChi2NCl" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
-                    profile2DProjection(o, [[0,2]])
-                if "Sigma1Pt" in o.GetName():
+                elif "Sigma1Pt" in o.GetName():
                     if "TRD" in o.GetName():#write extra function in additional script
                         continue
                     else:
                         projectCorrelationsTo1D(o, 1, scaled=False)
                         projectCorrelationsTo2D(o, [[1,0]])
                         profile2DProjection(o, [[0,1]])
+                elif "alpha" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                elif "signed1Pt" in o.GetName():#add ratio pos neg !
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
+                    projectCorrelationsTo1D(o, 0, scaled=True, scaleFactor=eventMult)
+                elif "snp" in o.GetName():#improve binning !
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    profile2DProjection(o, [[0,2]])
+                elif "tgl" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    profile2DProjection(o, [[0,2]])
+                elif "length" in o.GetName():
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    profile2DProjection(o, [[0,2]])
+                else:
+                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    profile2DProjection(o, [[0,2]])
             else:
                 print(o.GetName())
                 print("we miss something..")
