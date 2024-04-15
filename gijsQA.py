@@ -78,25 +78,26 @@ def main():
                         default="Results/LHC22s_pass5/AnalysisResults.root", help="Path and File input", nargs="+")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
+    parser.add_argument("--DataSets", "-d", type=str,
+                        default="LHC23y_pass1", help="To specify the namefor saving", nargs="+")
     args = parser.parse_args()
 
     if args.Mode=="FULL":
-        drawPlots(args.Input[0], args.Mode, args.Save, dataSet="LHC23y_pass1")
-        compareTRD(args.Input, args.Save, dataSet="LHC23y_pass1")
+        drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
+        compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
     if args.Mode=="QA":
         drawPlots(args.Input[0], args.Mode, args.Save)
     if args.Mode=="TRD":
         compareTRD(args.Input, args.Save)
     if args.Mode=="COMPARE":
-        DataSets = []
-        for file in args.Input:
-            print(file)
-            dataSetArr = re.findall(r'\/.*?\/', file)
-            dataSet=dataSetArr[0].strip("/")
-            DataSets.append(dataSet)
-        compareDataSets(DataSets=DataSets, Save=args.Save, doRatios="True")#needs a fix for division by 0 !
-        compareTRD(DataSets, args.Save)
+        print("not fully implmented")
+       # DataSets = args.DataSets
+       # for file in args.Input:
+       #     print(file)
+       #     dataSetArr = re.findall(r'\/.*?\/', file)
+       #     dataSet=dataSetArr[0].strip("/")
+       #     DataSets.append(dataSet)
+       # compareDataSets(Path=args.Input, DataSets=args.DataSets, RunNumber=None, Save=args.Save, doRatios="True", CutVars=None) #needs modification for uncorrelated error
+       # compareTRD(args.DataSets, args.Save) -needs fix
 main()
-
-#./gijsQA.py --Mode FULL --Input /dcache/alice/jlomker/LHC23y_pass1/AnalysisResults.root --Save True
-    
+#./gijsQA.py --Mode FULL --Input /dcache/alice/jlomker/LHC23k4b/AnalysisResults.root --Save True --DataSet LHC23k4b

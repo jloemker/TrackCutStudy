@@ -130,7 +130,7 @@ def projectEventProp(o, output=None, dataSet=None, extractScale=None):
     tmp = []
     h = o.Projection(0)
     h.GetYaxis().SetTitle("number of entries")
-    if output != None:
+    if (output != None) and (extractScale==None) :
         tmp.append(h)
         return tmp
     else:
@@ -152,11 +152,18 @@ def projectEventProp(o, output=None, dataSet=None, extractScale=None):
         h12.SetStats(0)
         can2D = canvas(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
         h12.Draw("COLZ")
-    if extractScale == True:
+    if (extractScale == True) and (output == None):
         print("extracting scale..", h.GetName())
         if h.GetName() == "collisionVtxZ":
             print("h.GetName() ", h.GetName(), " h.Integral() ", h.Integral())
             return h.Integral()
+    if (extractScale == True) and (output != None):
+        print("extracting scale..", h.GetName())
+        if h.GetName() == "collisionVtxZ":
+            print("h.GetName() ", h.GetName(), " h.Integral() ", h.Integral())
+            tmp.append(h)
+            return h.Integral(), tmp
+
 
 def projectEtaPhiInPt(o, pt_ranges, logz=False, output=None, dataSet=None):
     for pT in pt_ranges: 
