@@ -135,9 +135,10 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     histos.append(h)
                             elif "EtaPhiPt" in o.GetName():#
                                 tmp = projectCorrelationsTo1D(o, 4, scaled=False, output=tmp, dataSet=dataSet)
-                                profile2DProjection(o, [[0,1], [0,2], [0,3]], output=tmp, dataSet=dataSet)
+                                profile2DProjection(o, [[0,1], [0,2], [0,3],[1,2],[1,3]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
+                                    print("h.GetName(): ", h.GetName(), " h.Integral(): ", h.Integral())
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
                                     h.Scale(1/eventMult)
@@ -146,7 +147,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     continue
                             elif "xyz" in o.GetName():
                                 tmp = projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                                profile2DProjection(o, [[0,2], [0,3], [0,4]], output=tmp, dataSet=dataSet)
+                                profile2DProjection(o, [[0,2], [0,3], [0,4],[1,2],[1,3],[1,4]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
@@ -155,7 +156,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     histos.append(h)
                             elif "alpha" in o.GetName():
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                                profile2DProjection(o, [[0,2]], output=tmp, dataSet=dataSet)
+                                profile2DProjection(o, [[0,2],[1,2]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
@@ -173,7 +174,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     histos.append(h)
                             else:
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                                profile2DProjection(o, [[0,2]], output=tmp, dataSet=dataSet)
+                                profile2DProjection(o, [[0,2],[1,2]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
@@ -237,7 +238,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                 continue
                         elif "xyz" in o.GetName():
                             tmp = projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                            profile2DProjection(o, [[0,2], [0,3], [0,4]], output=tmp, dataSet=dataSet)
+                            profile2DProjection(o, [[0,2], [0,3], [0,4], [1,2], [1,3], [1,4]], output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
@@ -245,7 +246,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                 histos.append(h)
                         elif "alpha" in o.GetName():
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                            profile2DProjection(o, [[0,2]], output=tmp, dataSet=dataSet)
+                            profile2DProjection(o, [[0,2],[1,2]], output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
@@ -254,6 +255,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                         elif "signed1Pt" in o.GetName():#add ratio pos neg !
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
                             projectCorrelationsTo1D(o, 0, scaled=False, output=tmp, dataSet=dataSet)
+                            profile2DProjection(o, [[0,2],[1,2]], output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())
@@ -263,7 +265,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                             print(o.GetTitle())
                             input("wait")
                             tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
-                            profile2DProjection(o, [[0,2]], output=tmp, dataSet=dataSet)
+                            profile2DProjection(o, [[0,2],[1,2]], output=tmp, dataSet=dataSet)
                             for h in tmp:
                                 h.SetName(dataSet+" "+dirName+" "+h.GetName())  
                                 h.SetTitle(dataSet+" "+h.GetTitle())

@@ -5,14 +5,13 @@ eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
 
 #Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
 #Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
-Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
+Results=/dcache/alice/jlomker/LHC22o_pass6_QC1_sampling
 
 cp $Results/merge_runs.txt merge_runs.txt
 
 cuts=(
-    "globalTrackWoPtEta=true"
-    "globalTrackWoDCA=true"
-    "globalTrack=true"
+    "ValCutEta0_9"
+    "ValCutEta0_99"
 )
 while IFS= read -r line
 do

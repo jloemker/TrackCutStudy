@@ -5,13 +5,13 @@ eval $(alienv printenv VO_ALICE@O2Physics::daily-20240214-0100-1)
 
 #Results=/dcache/alice/jlomker/LHC23_PbPb_pass1
 #Results=/dcache/alice/jlomker/LHC22_pass4_highIR_sampling
-Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
-
+#Results=/dcache/alice/jlomker/LHC22_pass4_lowIR
+Results=/dcache/alice/jlomker/LHC22o_pass6_QC1_sampling
 cp $Results/*.txt .			# cp all available merge files (for each period)
 echo ${Results}/*.txt > periodList.txt  # write all periods upto a file for iteration (at the bottom of this file)
 
 
-cuts=(
+Fullcuts=(
     "maxChi2PerClusterITS=30"
     "maxChi2PerClusterITS=42"
     "maxChi2PerClusterTPC=2"
@@ -43,7 +43,54 @@ cuts=(
     "minTPCNClsFound=3"
 )
 
+cutsExtra=(
+    "maxChi2PerClusterITS=46"
+    "maxChi2PerClusterITS=42"
+    "maxChi2PerClusterITS=30"
+    "maxChi2PerClusterITS=24"
+    "maxChi2PerClusterTPC=2"
+    "maxChi2PerClusterTPC=3"
+    "maxChi2PerClusterTPC=5"
+    "maxChi2PerClusterTPC=6"
+    "maxDcaZ=0.1"
+    "maxDcaZ=0.5"
+    "maxDcaZ=1"
+    "maxDcaZ=3"
+    "maxDcaZ=6"
+    "maxDcaZ=9"
+    "maxDcaXY=0.05"
+    "maxDcaXY=0.25"
+    "maxDcaXY=0.5"
+    "maxDcaXY=1"
+    "maxDcaXY=1.5"
+    "maxDcaXY=2.5"
+    "maxDcaXY=3"
+    "maxDcaXY=6"
+    "maxDcaXY=9"
+    "minNCrossedRowsOverFindableClustersTPC=0.6"
+    "minNCrossedRowsOverFindableClustersTPC=0.7"
+    "minNCrossedRowsOverFindableClustersTPC=0.9"
+    "minNCrossedRowsOverFindableClustersTPC=1.0"
+    "minNCrossedRowsTPC=130"
+    "minNCrossedRowsTPC=110"
+    "minNCrossedRowsTPC=60"
+    "minNCrossedRowsTPC=80"
+    "globalTrackWoPtEta=true"
+    "globalTrackWoDCA=true"
+    "globalTrack=true"
+    "itsPattern=0"
+    "itsPattern=1"
+    "itsPattern=2"
+    "itsPattern=3"
+    "minTPCNClsFound=1"
+    "minTPCNClsFound=2"
+    "minTPCNClsFound=3"
+)
 
+cuts=(
+    "ValCutEta=0.9"
+    "ValCutEta=0.99"
+)
 mergePeriod(){
 
 export mergeFile=$1
