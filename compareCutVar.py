@@ -88,14 +88,16 @@ def plotResults(Path, DataSet, RunNumber, Save="",CutVar=[]):
 def generate_cutVarArr(Type):
     cutVarArr = []
     cutVarArr.append("globalTrackWoPtEta")#baseline for ratios
-    All = ["maxChi2PerClusterITS30", "maxChi2PerClusterITS42", 
+    All = ["ValCutEta0_9", "ValCutEta0_99",
+           "maxChi2PerClusterITS30", "maxChi2PerClusterITS42","maxChi2PerClusterITS46","maxChi2PerClusterITS24", 
            "maxChi2PerClusterTPC2", "maxChi2PerClusterTPC3", "maxChi2PerClusterTPC5", "maxChi2PerClusterTPC6",
-           "maxDcaZ1", "maxDcaZ3",
-           "maxDcaXY0_5", "maxDcaXY1", "maxDcaXY1_5", "maxDcaXY2_5",  "maxDcaXY3", 
+            "maxDcaZ1",
+            "maxDcaZ3","maxDcaZ0_1","maxDcaZ0_5","maxDcaZ6","maxDcaZ9",
+           "maxDcaXY0_5", "maxDcaXY1", "maxDcaXY1_5", "maxDcaXY2_5",  "maxDcaXY3","maxDcaXY0_05","maxDcaXY0_25","maxDcaXY6","maxDcaXY9", 
            "minNCrossedRowsOverFindableClustersTPC0_6", "minNCrossedRowsOverFindableClustersTPC0_7",
              "minNCrossedRowsOverFindableClustersTPC0_9", "minNCrossedRowsOverFindableClustersTPC1_0",
-           "minNCrossedRowsTPC110", "minNCrossedRowsTPC60", "minNCrossedRowsTPC80",
-           "itsPattern0", "itsPattern1", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3",
+           "minNCrossedRowsTPC110", "minNCrossedRowsTPC60", "minNCrossedRowsTPC80","minNCrossedRowsTPC60","minNCrossedRowsTPC130",
+           "itsPattern0", "itsPattern1","itsPattern2", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3",
            "globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
     if "selections" in Type:
         cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
