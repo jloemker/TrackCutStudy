@@ -17,7 +17,7 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
         if scaled==True:
             histo.SetStats(0)
             histo.Scale(1/histo.Integral())
-            histo.GetYaxis().SetTitle("scaled by 1/Integral")
+            histo.GetYaxis().SetTitle("scaled by 1/N_{Events}")
         histo.SetName(histo.GetTitle())
         if output == None:
             can = canvas(histo.GetTitle())
@@ -35,7 +35,7 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
             if scaled==True:
                 histo.SetStats(0)
                 histo.Scale(1/histo.Integral())
-                histo.GetYaxis().SetTitle("scaled by 1/Integral")
+                histo.GetYaxis().SetTitle("scaled by 1/N_{Events}")
             histo.SetName(histo.GetTitle())
             if output == None:
                 can = canvas(histo.GetTitle())
