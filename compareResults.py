@@ -80,7 +80,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
     histos = []
     if (RunNumber != None):
         DataSets[0] = RunNumber
-    for dataSet in DataSets:#make first one the base line for ratios and saving
+    for dataSet in DataSets:#make first one the base line for ratios and saving ## reverse back to DataSets
         eventMult=0
         if CutVars != None:
             for cutVar in CutVars:
