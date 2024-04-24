@@ -109,7 +109,10 @@ def drawPlots(InputDir="", Mode="", Save="",dataSet=None, suffix=None):
             dataSetArr = re.findall(r'\/.*?\/', InputDir)
             dataSet=dataSetArr[0].strip("/")
         print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
-        saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
+        if suffix!=None:
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{suffix}.pdf", dataSet)
+        else:
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
         clear_canvaslist()
     else:
         print("we don't save this ...")

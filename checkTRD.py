@@ -181,7 +181,10 @@ def compareTRD(DataSets={}, Save="", dataSet=None, suffix=None):
         legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
         legR.Draw()
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")   
+            if suffix!=None:
+                saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks_{suffix}.pdf", f"{dataSet}")   
+            else:
+                saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")
             clear_canvaslist() 
         else:
             input("wait before closing - this will not be saved !")
