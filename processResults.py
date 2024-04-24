@@ -134,12 +134,13 @@ def main():
     if args.Mode=="FULL":
         if args.Suffix!=None:
             drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
+            compareTRD(args.Input, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
+#./processResults.py --Mode FULL --Input Results/LHC22o_Marta/AnalysisResults.root --DataSet LHC23k4b --Save True --Suffix id9648
         else:
             print("no suffix")
             drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
-        compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
+            compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
 # ./processResults.py --Mode FULL --Input /dcache/alice/jlomker/LHC23k4b/AnalysisResults.root --DataSet LHC23k4b --Save True
-
     if args.Mode=="QA":
         drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
     if args.Mode=="TRD":
