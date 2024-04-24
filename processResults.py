@@ -17,7 +17,7 @@ from compareResults import compareDataSets
 
 legends = []
 
-def drawPlots(InputDir="", Mode="", Save=""):
+def drawPlots(InputDir="", Mode="", Save="",dataSet=None):
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
@@ -101,8 +101,9 @@ def drawPlots(InputDir="", Mode="", Save=""):
             if Save ==False:
                 input("Wait and check the histograms !")
     if Save=="True":
-        dataSetArr = re.findall(r'\/.*?\/', InputDir)
-        dataSet=dataSetArr[0].strip("/")
+        if dataSet==None :
+            dataSetArr = re.findall(r'\/.*?\/', InputDir)
+            dataSet=dataSetArr[0].strip("/")
         print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
         saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
         clear_canvaslist()
@@ -115,18 +116,21 @@ def drawPlots(InputDir="", Mode="", Save=""):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--Mode", "-m", type=str,
-                        default=["Full", "TRD", "COMPARE"], help="Activate 'CompareDataSets', or plots QA AnalysisResults from 'Full' , 'Tree'(derived) results")
+                        default=["FULL", "TRD", "COMPARE"], help="Activate 'CompareDataSets', or plots QA AnalysisResults from 'Full' , 'Tree'(derived) results")
     parser.add_argument("--Input", "-in", type=str,
                         default="Results/LHC22s_pass5/AnalysisResults.root", help="Path and File input", nargs="+")
     parser.add_argument("--Save", "-s", type=str,
                         default=["False", "True"], help="If you set this flag, it will save the documents")
+    parser.add_argument("--DataSets", "-d", type=str,
+                        default="LHC23y_pass1", help="To specify the name for saving", nargs="+")
     args = parser.parse_args()
 
     if args.Mode=="FULL":
-        drawPlots(args.Input[0], args.Mode, args.Save)
-        compareTRD(args.Input, args.Save)
+        drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
+        compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
+# ./processResults.py --Mode FULL --Input /dcache/alice/jlomker/LHC23k4b/AnalysisResults.root --DataSet LHC23k4b --Save True
     if args.Mode=="QA":
-        drawPlots(args.Input[0], args.Mode, args.Save)
+        drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
     if args.Mode=="TRD":
         compareTRD(args.Input, args.Save)
     if args.Mode=="COMPARE":

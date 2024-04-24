@@ -80,7 +80,7 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
     histos = []
     if (RunNumber != None):
         DataSets[0] = RunNumber
-    for dataSet in DataSets:#make first one the base line for ratios and saving
+    for dataSet in DataSets:#make first one the base line for ratios and saving ## reverse back to DataSets
         eventMult=0
         if CutVars != None:
             for cutVar in CutVars:
@@ -138,10 +138,11 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                 profile2DProjection(o, [[0,1], [0,2], [0,3],[1,2],[1,3]], output=tmp, dataSet=dataSet)
                                 for h in tmp:
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
-                                    print("h.GetName(): ", h.GetName(), " h.Integral(): ", h.Integral())
+                                    #print("h.GetName(): ", h.GetName(), " h.Integral(): ", h.Integral())
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
-                                    h.Scale(1/eventMult)
+                                    if not "profile" in h.GetTitle():
+                                        h.Scale(1/eventMult)
                                     histos.append(h)
                             elif ("Sigma1Pt" in o.GetName()) or ("TRD" in o.GetName()):#included in eta phi pt case write/tune the extra function in additional script
                                     continue
@@ -152,7 +153,8 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
-                                    h.Scale(1/eventMult)
+                                    if not "profile" in h.GetTitle():
+                                        h.Scale(1/eventMult)
                                     histos.append(h)
                             elif "alpha" in o.GetName():
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -161,7 +163,8 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
-                                    h.Scale(1/eventMult)
+                                    if not "profile" in h.GetTitle():
+                                        h.Scale(1/eventMult)
                                     histos.append(h)
                             elif "signed1Pt" in o.GetName():#add ratio pos neg !
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -170,7 +173,8 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
-                                    h.Scale(1/eventMult)
+                                    if not "profile" in h.GetTitle():
+                                        h.Scale(1/eventMult)
                                     histos.append(h)
                             else:
                                 tmp = projectCorrelationsTo1D(o, 2, dim_min=2, scaled=False, output=tmp, dataSet=dataSet)
@@ -179,7 +183,8 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                                     h.SetName(cutVar+" "+dirName+" "+h.GetName())  
                                     h.SetTitle(cutVar+" "+h.GetTitle())
                                     h.SetDirectory(0)
-                                    h.Scale(1/eventMult)
+                                    if not "profile" in h.GetTitle():
+                                        h.Scale(1/eventMult)
                                     histos.append(h)
         if CutVars == None:
             f = TFile.Open(f"{Path}/{dataSet}/AnalysisResults.root", "READ")
@@ -311,6 +316,8 @@ def compareDataSets(Path, DataSets, RunNumber, Save, doRatios, CutVars):
                # if abs(nEntries) > 0:
                #     j.Scale(1/nEntries)
                 j.GetYaxis().SetTitle("scaled by (1/N_{event})")
+                if "profile" in j.GetTitle():
+                    j.GetYaxis().SetTitle(j.GetTitle())
                 if "tgl" in j.GetXaxis().GetTitle():
                     j.GetYaxis().SetRangeUser(0,0.008)
                 j.SetLineColor(col)

@@ -100,7 +100,7 @@ def generate_cutVarArr(Type):
            "itsPattern0", "itsPattern1","itsPattern2", "itsPattern3", "minTPCNClsFound1", "minTPCNClsFound2", "minTPCNClsFound3",
            "globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
     if "selections" in Type:
-        cutVarArr = ["globalTrackWoPtEta", "globalTrackWoDCA", "globalTrack"]
+        cutVarArr = ["globalTrackWoPtEta","globalTrack"]# "globalTrackWoDCA", "globalTrack"]
     if "vs" in str(Type):
         if "standard" in str(Type[0]):
             cutVarArr.append("globalTrackWoPtEta")
