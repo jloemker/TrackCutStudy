@@ -17,17 +17,21 @@ from compareResults import compareDataSets
 
 legends = []
 
-def drawPlots(InputDir="", Mode="", Save="",dataSet=None):
+def drawPlots(InputDir="", Mode="", Save="",dataSet=None, suffix=None):
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
         return
-    get_directories(f, f"track-jet-qa")
+    if suffix!=None:
+        Id=f"track-jet-qa_{suffix}"
+    else:
+        Id=f"track-jet-qa"
+    get_directories(f,Id)
     eventMult=0
     for dirName in  Directories:
-        dir = f.Get(f"track-jet-qa/"+dirName).GetListOfKeys()
-        for obj in dir:
-            o = f.Get(f"track-jet-qa/"+dirName+"/"+obj.GetName())
+        Dir = f.Get(Id+"/"+dirName).GetListOfKeys()
+        for obj in Dir:
+            o = f.Get(Id+"/"+dirName+"/"+obj.GetName())
             if not o:
                 print("Did not get", o, " as object ", obj)
                 continue
@@ -105,7 +109,10 @@ def drawPlots(InputDir="", Mode="", Save="",dataSet=None):
             dataSetArr = re.findall(r'\/.*?\/', InputDir)
             dataSet=dataSetArr[0].strip("/")
         print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
-        saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
+        if suffix!=None:
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{suffix}.pdf", dataSet)
+        else:
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
         clear_canvaslist()
     else:
         print("we don't save this ...")
@@ -123,11 +130,19 @@ def main():
                         default=["False", "True"], help="If you set this flag, it will save the documents")
     parser.add_argument("--DataSets", "-d", type=str,
                         default="LHC23y_pass1", help="To specify the name for saving", nargs="+")
+    parser.add_argument("--Suffix", "-x", type=str,
+                        default=None, help="Suffix for subwagon output")
     args = parser.parse_args()
 
     if args.Mode=="FULL":
-        drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
-        compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
+        if args.Suffix!=None:
+            drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
+            compareTRD(args.Input, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
+#./processResults.py --Mode FULL --Input Results/LHC22o_Marta/AnalysisResults.root --DataSet LHC23k4b --Save True --Suffix id9648
+        else:
+            print("no suffix")
+            drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
+            compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
 # ./processResults.py --Mode FULL --Input /dcache/alice/jlomker/LHC23k4b/AnalysisResults.root --DataSet LHC23k4b --Save True
     if args.Mode=="QA":
         drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])

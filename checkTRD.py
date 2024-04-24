@@ -133,17 +133,21 @@ def histosTRD(pt, ptTRD, dataSet, nSet=None):
         pt.SetMarkerStyle(24+nSet)
         ptTRD.SetMarkerStyle(24+nSet)
 
-def compareTRD(DataSets={}, Save="", dataSet=None):
+def compareTRD(DataSets={}, Save="", dataSet=None, suffix=None):
     files = {}
     histos = []
+    if suffix!=None:
+        Id=f"track-jet-qa_{suffix}"
+    else:
+        Id=f"track-jet-qa"
     if len(DataSets) == 1:
         f = TFile.Open(f"{DataSets[0]}","READ")
         dataSetArr = re.findall(r'\/.*?\/', DataSets[0])
         if dataSet==None:
             dataSet=dataSetArr[0].strip("/")
-        sigma1Pt = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt").Projection(1,0)
-        sigma1Pt_TRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasTRD").Projection(1,0)
-        sigma1Pt_noTRD = f.Get(f"track-jet-qa/TrackPar/Sigma1Pt_hasNoTRD").Projection(1,0)
+        sigma1Pt = f.Get(Id+"/TrackPar/Sigma1Pt").Projection(1,0)
+        sigma1Pt_TRD = f.Get(Id+"/TrackPar/Sigma1Pt_hasTRD").Projection(1,0)
+        sigma1Pt_noTRD = f.Get(Id+"/TrackPar/Sigma1Pt_hasNoTRD").Projection(1,0)
 
         canS = canvas("TH2 Sigma1Pt vs Pt", x=320, y=900)
         draw2DSigmaPtOnCanvas(canS, sigma1Pt, sigma1Pt_TRD, sigma1Pt_noTRD, dataSet, DataSets)
@@ -158,8 +162,8 @@ def compareTRD(DataSets={}, Save="", dataSet=None):
         legP = createLegend(x=[0.6, 0.8], y=[0.25, 0.45], objects=[prof, profTRD, profNoTRD])
         legP.Draw()
 
-        pt = f.Get(f"track-jet-qa/Kine/pt").Projection(0)
-        ptTRD = f.Get(f"track-jet-qa/Kine/pt_TRD").Projection(0)
+        pt = f.Get(Id+"/Kine/pt").Projection(0)
+        ptTRD = f.Get(Id+"/Kine/pt_TRD").Projection(0)
         can = canvas("TH1F pT TRD ")
         histosTRD(pt, ptTRD, dataSet, None)
         pt.Draw("E")
@@ -177,7 +181,10 @@ def compareTRD(DataSets={}, Save="", dataSet=None):
         legR = createLegend(x=[0.2, 0.8], y=[0.88,0.98], objects=[r])
         legR.Draw()
         if Save=="True":
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")   
+            if suffix!=None:
+                saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks_{suffix}.pdf", f"{dataSet}")   
+            else:
+                saveCanvasList(canvas_list, f"Save/{dataSet}/TRD_checks.pdf", f"{dataSet}")
             clear_canvaslist() 
         else:
             input("wait before closing - this will not be saved !")
