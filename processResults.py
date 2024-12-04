@@ -17,7 +17,13 @@ from compareResults import compareDataSets
 
 legends = []
 
-def drawPlots(InputDir="", Mode="", Save="",dataSet=None, suffix=None):
+def drawPlots(InputDir="", Mode="", Save="", scale="",dataSet=None, suffix=None):
+    log=False
+    integral=False
+    if scale == "LOG":
+        log=True
+    elif scale == "INT":
+        integral=True
     f = TFile.Open(InputDir, "READ")
     if not f or not f.IsOpen():
         print("Did not get", f)
@@ -48,56 +54,57 @@ def drawPlots(InputDir="", Mode="", Save="",dataSet=None, suffix=None):
                     if ("no" in o.GetName()) or ("Sel8" in o.GetName()):
                         projectEventProp(o)
                     else:
-                        eventMult=projectEventProp(o, extractScale=True)
+                        eventMult=projectEventProp(o, extractScale=integral)
                     print(eventMult)
                 elif "MultCorrelations" in o.GetName() and dirName=="EventProp":
+                    continue
                     projectCorrelationsTo1D(o,o.GetNdimensions())
-                    projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]])
+                    projectCorrelationsTo2D(o, [[0,1], [3,4], [5,6], [5,7], [2,7]], logz=log)
                 elif "MultCorrelations" in o.GetName() and dirName=="TrackEventPar":
+                    continue
                     projectCorrelationsTo1D(o,o.GetNdimensions())
-                    projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]])
-                    projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]])
-                elif "EtaPhiPt" in o.GetName():#pt and pT_TRD for extra check later
-                    projectCorrelationsTo1D(o, 4, scaled=True, scaleFactor=eventMult)
-                    projectEtaPhiInPt(o, [[1,5], [5,15], [15,30],[30,100], [0,200]], logz=True)
+                    projectCorrelationsTo2D(o, [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0], [7,0], [8,0], [9,0]], logz=log)
+                    projectCorrelationsTo2D(o, [[1,2], [1,3], [1,4], [1,5], [1,6], [1,7], [1,8], [1,9]], logz=log)
+                elif "EtaPhiPt" in o.GetName():
+                    projectCorrelationsTo1D(o, 4, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectEtaPhiInPt(o, [[2,10], [10,60], [60,100], [100,199], [2,199]], logz=log)
                     profile2DProjection(o, [[0,1], [0,2], [0,3]])
                 elif "xyz" in o.GetName():
-                   # projectCorrelationsTo1D(o, 5, dim_min=2, scaled=False)
-                    projectCorrelationsTo1D(o, 5, dim_min=2, scaled=True, scaleFactor=eventMult)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    projectCorrelationsTo1D(o, 5, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]], logz=log)
                     profile2DProjection(o, [[0,2], [0,3], [0,4]])
                 elif "tpcCrossedRowsOverFindableCls" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
-                    projectCorrelationsTo2D(o, [[2,0]])
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0]], logz=log)
                     profile2DProjection(o, [[0,2]])
                 elif "Sigma1Pt" in o.GetName():
-                    if "TRD" in o.GetName():#write extra function in additional script
+                    if "TRD" in o.GetName():#extra function in additional script
                         continue
                     else:
-                        projectCorrelationsTo1D(o, 1, scaled=False)
-                        projectCorrelationsTo2D(o, [[1,0]])
+                        projectCorrelationsTo1D(o, 1, logy=log, scaled=integral)
+                        projectCorrelationsTo2D(o, [[1,0]], logz=log)
                         profile2DProjection(o, [[0,1]])
                 elif "alpha" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]], logz=log)
                     profile2DProjection(o, [[0,2]])
                 elif "signed1Pt" in o.GetName():#add ratio pos neg !
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]], logz=log)
                     profile2DProjection(o, [[0,2]])
-                    projectCorrelationsTo1D(o, 0, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo1D(o, 0, logy=log, scaled=integral, scaleFactor=eventMult)
                 elif "snp" in o.GetName():#improve binning !
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
                     profile2DProjection(o, [[0,2]])
                 elif "tgl" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
                     profile2DProjection(o, [[0,2]])
                 elif "length" in o.GetName():
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
                     profile2DProjection(o, [[0,2]])
                 else:
-                    projectCorrelationsTo1D(o, 2, dim_min=2, scaled=True, scaleFactor=eventMult)
-                    projectCorrelationsTo2D(o, [[2,0], [2,1]])
+                    projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
+                    projectCorrelationsTo2D(o, [[2,0], [2,1]], logz=log)
                     profile2DProjection(o, [[0,2]])
             else:
                 print(o.GetName())
@@ -108,11 +115,11 @@ def drawPlots(InputDir="", Mode="", Save="",dataSet=None, suffix=None):
         if dataSet==None :
             dataSetArr = re.findall(r'\/.*?\/', InputDir)
             dataSet=dataSetArr[0].strip("/")
-        print(f"Save/{dataSet}/TrackQA_{dataSet}.pdf")
+        print(f"Save/{dataSet}/TrackQA_{dataSet}_{scale}.pdf")
         if suffix!=None:
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{suffix}.pdf", dataSet)
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{suffix}_{scale}.pdf", dataSet)
         else:
-            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}.pdf", dataSet)
+            saveCanvasList(canvas_list, f"Save/{dataSet}/TrackQA_{dataSet}_{scale}.pdf", dataSet)
         clear_canvaslist()
     else:
         print("we don't save this ...")
@@ -132,20 +139,22 @@ def main():
                         default="LHC23y_pass1", help="To specify the name for saving", nargs="+")
     parser.add_argument("--Suffix", "-x", type=str,
                         default=None, help="Suffix for subwagon output")
+    parser.add_argument("--Scaled", "-sc", type=str,
+                        default=["LOG", "INT","NONE"])
     args = parser.parse_args()
 
     if args.Mode=="FULL":
         if args.Suffix!=None:
-            drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
+            drawPlots(args.Input[0], args.Mode, args.Save, args.Scaled, dataSet=args.DataSets[0], suffix=args.Suffix)
             compareTRD(args.Input, args.Save, dataSet=args.DataSets[0], suffix=args.Suffix)
-#./processResults.py --Mode FULL --Input Results/LHC22o_Marta/AnalysisResults.root --DataSet LHC23k4b --Save True --Suffix id9648
+#./processResults.py --Mode FULL --Input Results/LHC23_pass4_Thin_small/AnalysisResults.root --DataSet LHC23 --Save True --Scaled LOG --Suffix WoPtEta
         else:
             print("no suffix")
-            drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
+            drawPlots(args.Input[0], args.Mode, args.Save, args.Scaled, dataSet=args.DataSets[0])
             compareTRD(args.Input, args.Save, dataSet=args.DataSets[0])
 # ./processResults.py --Mode FULL --Input /dcache/alice/jlomker/LHC23k4b/AnalysisResults.root --DataSet LHC23k4b --Save True
     if args.Mode=="QA":
-        drawPlots(args.Input[0], args.Mode, args.Save, dataSet=args.DataSets[0])
+        drawPlots(args.Input[0], args.Mode, args.Save, args.Scaled, dataSet=args.DataSets[0])
     if args.Mode=="TRD":
         compareTRD(args.Input, args.Save)
     if args.Mode=="COMPARE":
