@@ -12,8 +12,6 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
     if (dim == 0) or (dim == dim_min):
         histo = o.Projection(dim)
         histo.GetYaxis().SetTitle("number of entries")
-        if "#it{p}_{T}" in histo.GetXaxis().GetTitle():
-            logy=True
         if scaled==True:
             histo.SetStats(0)
             histo.Scale(1/scaleFactor)
@@ -30,8 +28,6 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
         for axis in range(dim_min,dim):
             histo = o.Projection(axis)
             histo.GetYaxis().SetTitle("number of entries")
-            if "#it{p}_{T}" in histo.GetXaxis().GetTitle():
-                logy==True
             if scaled==True:
                 histo.SetStats(0)
                 histo.Scale(1/scaleFactor)
@@ -43,21 +39,15 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
                 if logy == True:
                     can.SetLogy()
             else:
-                #histo.SetTitle(dataSet+" "+histo.GetTitle())
-                #histo.SetName(dataSet+" "+histo.GetName())
                 output.append(histo)
     else:
         for axis in range(0,dim):
             histo = o.Projection(axis)
             histo.GetYaxis().SetTitle("number of entries")
-            if "#it{p}_{T}" in histo.GetXaxis().GetTitle():
-                logy=True
-               # input("logy")
             if scaled==True:
                 print("scaling histos")
                 histo.SetStats(0)
                 histo.Scale(1/scaleFactor)
-                #histo.GetYaxis().SetTitle("scaled by 1/Integral")
                 histo.GetYaxis().SetTitle("Counts/N_{Event}")
             histo.SetName(histo.GetTitle())
             if output == None:
@@ -68,27 +58,18 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
                 histo.Draw("E")
                 if logy==True:
                     can.SetLogy()
-                   # input("SetLogy()")
-               # if scaleFactor != None:
-                  # print("scaling histos")
-                  # histo.Scale(1/scaleFactor)
                 if ("#phi" in histo.GetXaxis().GetTitle()):
                     min_y = histo.GetBinContent(histo.GetMinimumBin())-histo.GetBinContent(histo.GetMinimumBin())/3
                     max_y = histo.GetBinContent(histo.GetMaximumBin())+histo.GetBinContent(histo.GetMaximumBin())/3
                     histo.GetYaxis().SetRangeUser(min_y, max_y)
                     histo.GetYaxis().SetMoreLogLabels()
-               # if ("#eta" in histo.GetXaxis().GetTitle()):
-               #     min_y = histo.GetBinContent(histo.GetMinimumBin())-histo.GetBinContent(histo.GetMinimumBin())/3
-               #     max_y = histo.GetBinContent(histo.GetMaximumBin())+histo.GetBinContent(histo.GetMaximumBin())/3
-               #     histo.GetYaxis().SetRangeUser(min_y, max_y)   
             else:
-                #histo.SetTitle(dataSet+" "+histo.GetTitle())
                 histo.SetName(dataSet+" "+histo.GetName())
                 output.append(histo)
     if output != None:
         return output
 
-def projectCorrelationsTo2D(o, axis, output=None):
+def projectCorrelationsTo2D(o, axis, logz=False, output=None):
     for a in axis:
         h = o.Projection(a[0],a[1])
         if output != None:
@@ -102,7 +83,8 @@ def projectCorrelationsTo2D(o, axis, output=None):
             h.SetStats(0)
             print("Drawing 2D")
             h.Draw("COLZ")
-        #can.SetLogz()
+        if logz==True:
+            can.SetLogz()
 
 def profile2DProjection(o, axis, output=None, dataSet=None):
     for a in axis:
