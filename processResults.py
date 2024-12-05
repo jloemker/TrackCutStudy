@@ -80,7 +80,10 @@ def drawPlots(InputDir="", Mode="", Save="", scale="",dataSet=None, suffix=None)
                 elif "Sigma1Pt" in o.GetName():
                     if "TRD" in o.GetName():#extra function in additional script
                         continue
+                    if "Multiplicity and Centrality" in o.GetName():
+                        continue
                     else:
+                        #print("Sigma1Pt no TRD: ", o.GetName())
                         projectCorrelationsTo1D(o, 1, logy=log, scaled=integral)
                         projectCorrelationsTo2D(o, [[1,0]], logz=log)
                         profile2DProjection(o, [[0,1]])
@@ -103,15 +106,17 @@ def drawPlots(InputDir="", Mode="", Save="", scale="",dataSet=None, suffix=None)
                     projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
                     profile2DProjection(o, [[0,2]])
                 else:
+                    if "pt" in o.GetName():
+                        continue # already in EtaPhiPt and TRD_check script
                     projectCorrelationsTo1D(o, 2, dim_min=2, logy=log, scaled=integral, scaleFactor=eventMult)
                     projectCorrelationsTo2D(o, [[2,0], [2,1]], logz=log)
                     profile2DProjection(o, [[0,2]])
             else:
-                print(o.GetName())
-                print("we miss something..")
+                #print(o.GetName())
+                print("we miss something..", o.GetName())
             if Save ==False:
                 input("Wait and check the histograms !")
-    if Save=="True":
+    if Save=="True":      
         if dataSet==None :
             dataSetArr = re.findall(r'\/.*?\/', InputDir)
             dataSet=dataSetArr[0].strip("/")

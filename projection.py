@@ -19,6 +19,8 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
         histo.SetName(histo.GetTitle())
         if output == None:
             can = canvas(histo.GetTitle())
+            histo.SetMarkerStyle(34)
+            histo.SetLineColor(1)
             histo.Draw("E")
             if logy == True:
                 can.SetLogy()
@@ -35,6 +37,8 @@ def projectCorrelationsTo1D(o,dim, dim_min=None, logy=False, scaled=False, outpu
             histo.SetName(histo.GetTitle())
             if output == None:
                 can = canvas(histo.GetTitle())
+                histo.SetMarkerStyle(34)
+                histo.SetLineColor(1)
                 histo.Draw("E")
                 if logy == True:
                     can.SetLogy()
@@ -98,6 +102,8 @@ def profile2DProjection(o, axis, output=None, dataSet=None):
         prof.SetDirectory(0)
         if ("#eta" in o.GetAxis(a[1]).GetTitle()) or ("cm" in o.GetAxis(a[1]).GetTitle()) or ("#alpha" in o.GetAxis(a[1]).GetTitle()) or ("q" in o.GetAxis(a[1]).GetTitle()):
             prof.GetYaxis().SetRangeUser(-1,1)
+        if ("#it{Length} [cm]" in o.GetAxis(a[1]).GetTitle()):
+            prof.GetYaxis().SetRangeUser(300,600)
         if output !=None:
             output.append(prof)
         else:
@@ -108,7 +114,7 @@ def profile2DProjection(o, axis, output=None, dataSet=None):
     if output !=None:
         return output
 
-def projectEventProp(o, output=None, dataSet=None, extractScale=None):
+def projectEventProp(o, output=None, dataSet=None, extractScale=None, Centrality=False, logz=False):
     tmp = []
     h = o.Projection(0)
     h.GetYaxis().SetTitle("number of entries")
@@ -119,21 +125,28 @@ def projectEventProp(o, output=None, dataSet=None, extractScale=None):
         h.SetName(o.GetName())
         can = canvas(o.GetName()+" "+o.GetAxis(0).GetTitle())
         h.Draw("E")
-        h01 = o.Projection(0,1)
-        h01.SetName(o.GetName()+" vs "+o.GetAxis(1).GetTitle())
-        h01.SetStats(0)
-        can2D = canvas(o.GetName()+" vs "+o.GetAxis(1).GetTitle())
-        h01.Draw("COLZ")
-        h02 = o.Projection(0,2)
-        h02.SetName(o.GetName()+" vs "+o.GetAxis(2).GetTitle())
-        h02.SetStats(0)
-        can2D = canvas(o.GetName()+" vs "+o.GetAxis(2).GetTitle())
-        h02.Draw("COLZ")
-        h12 = o.Projection(1,2)
-        h12.SetName(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
-        h12.SetStats(0)
-        can2D = canvas(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
-        h12.Draw("COLZ")
+        if Centrality == True:
+          h01 = o.Projection(0,1)
+          h01.SetName(o.GetName()+" vs "+o.GetAxis(1).GetTitle())
+          h01.SetStats(0)
+          can2D = canvas(o.GetName()+" vs "+o.GetAxis(1).GetTitle())
+          h01.Draw("COLZ")
+          if logz==True:
+            can2D.SetLogz() 
+          h02 = o.Projection(0,2)
+          h02.SetName(o.GetName()+" vs "+o.GetAxis(2).GetTitle())
+          h02.SetStats(0)
+          can2D = canvas(o.GetName()+" vs "+o.GetAxis(2).GetTitle())
+          h02.Draw("COLZ")
+          if logz==True:
+            can2D.SetLogz() 
+          h12 = o.Projection(1,2)
+          h12.SetName(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
+          h12.SetStats(0)
+          can2D = canvas(o.GetName()+": "+o.GetAxis(1).GetTitle()+" vs "+o.GetAxis(2).GetTitle())
+          h12.Draw("COLZ")
+          if logz==True:
+            can2D.SetLogz() 
     if (extractScale == True) and (output == None):
         print("extracting scale..", h.GetName())
         if h.GetName() == "collisionVtxZ":
@@ -148,6 +161,17 @@ def projectEventProp(o, output=None, dataSet=None, extractScale=None):
 
 
 def projectEtaPhiInPt(o, pt_ranges, logz=False, output=None, dataSet=None):
+    proj = o.Projection(2,3)
+    proj.SetStats(0)
+    proj.SetName("FUll projection")
+    proj.SetTitle("Projection for full p_{T} range")
+    if output != None:
+        output.append(proj)
+    else:
+        can = canvas("full p_{T} projection")
+        proj.Draw("COLZ") 
+        if logz==True:
+            can.SetLogz()   
     for pT in pt_ranges: 
         tmp = o
         tmp.GetAxis(0).SetRange(pT[0], pT[1])#Range in terms of bins - need to convert into pT value for label !
